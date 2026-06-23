@@ -154,14 +154,14 @@
       "id": "proposal",
       "type": "message",
       "role": "assistant",
-      "text": "Stopping at the diff is a valid setup for a public demo or read-only rollout. The developer keeps the review gate and applies the patch manually.",
+      "text": "Stopping at the **diff** is a valid setup for a public demo or a read-only rollout: the developer keeps the review gate and applies the patch manually. Nothing is written to SAP until a human approves it.",
       "next": "done"
     },
     "done": {
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "The value is the narrow edit surface: one method, one diff, then SAP-side checks."
+      "text": "The value is the narrow edit surface — **one method, one diff**, then SAP-side checks."
     }
   }
 }

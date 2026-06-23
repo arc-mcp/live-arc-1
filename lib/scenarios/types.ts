@@ -65,6 +65,8 @@ export interface MessageNode extends BaseNode {
   type: 'message';
   role: 'user' | 'assistant';
   text: string;
+  /** Optional collapsed reasoning shown above an assistant answer (markdown). */
+  thinking?: string;
 }
 
 export interface ToolNode extends BaseNode {

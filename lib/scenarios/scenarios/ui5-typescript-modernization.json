@@ -342,7 +342,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This modernization scenario is valuable because ARC-1 keeps the UI migration anchored in the live RAP service contract instead of treating UI5 as a detached frontend rewrite."
+      "text": "This stays anchored in the **live RAP service contract**: ARC-1 supplies the real service binding, projection fields, associations, and the migrated `approve_project` action, while the SAP Docs, Fiori, and UI5 MCP servers contribute the frontend patterns. The UI migration follows the backend truth instead of being a detached rewrite."
     }
   }
 }

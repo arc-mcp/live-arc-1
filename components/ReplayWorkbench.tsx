@@ -28,6 +28,7 @@ import {
   Wrench
 } from 'lucide-react';
 import { type Ref, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type MdBlock, type MdInline, parseMarkdown } from '@/lib/markdown';
 import { defaultScenarioId, getScenario, scenarios } from '@/lib/scenarios/data';
 import type {
   DecisionNode,
@@ -249,12 +250,12 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
           <Link className="brand" href="/">
             <span className="brand-mark">ARC</span>
             <span>
-              <strong>Live ARC-1 Replay</strong>
-              <small>Static scenarios, real SAP tool patterns</small>
+              <strong>Live ARC-1 Demo</strong>
+              <small>Guided ARC-1 workflows · real SAP tool calls</small>
             </span>
           </Link>
           <div className="topbar-actions">
-            <span className="status-pill">Replay only</span>
+            <span className="status-pill status-pill-live">Live demo</span>
             <span className="status-pill">{labelForTheme(scenario.theme)}</span>
           </div>
         </header>
@@ -764,17 +765,48 @@ function Transcript({ events, scenario }: { events: VisibleEvent[]; scenario: Sc
           return null;
         }
 
-        return <TranscriptNode key={event.id} node={node} nodeRef={eventRef} />;
+        return <TranscriptNode key={event.id} node={node} nodeRef={eventRef} theme={scenario.theme} />;
       })}
     </div>
   );
 }
 
-function TranscriptNode({ node, nodeRef }: { node: ReplayNode; nodeRef?: Ref<HTMLElement> }) {
+function TranscriptNode({
+  node,
+  nodeRef,
+  theme
+}: {
+  node: ReplayNode;
+  nodeRef?: Ref<HTMLElement>;
+  theme: Scenario['theme'];
+}) {
   if (node.type === 'message') {
+    if (node.role === 'assistant') {
+      const name = assistantName(theme);
+      return (
+        <article className="message assistant" ref={nodeRef}>
+          <div className="avatar">{name.charAt(0)}</div>
+          <div className="message-body">
+            <span className="message-author">{name}</span>
+            {node.thinking ? (
+              <details className="thinking">
+                <summary>Thought for a few seconds</summary>
+                <div className="thinking-body">
+                  <Markdown source={node.thinking} />
+                </div>
+              </details>
+            ) : null}
+            <div className="md-surface">
+              <Markdown source={node.text} />
+            </div>
+          </div>
+        </article>
+      );
+    }
+
     return (
-      <article className={`message ${node.role}`} ref={nodeRef}>
-        <div className="avatar">{node.role === 'user' ? 'U' : 'A'}</div>
+      <article className="message user" ref={nodeRef}>
+        <div className="avatar">U</div>
         <p>{node.text}</p>
       </article>
     );
@@ -1020,6 +1052,71 @@ function GraphView({ graph }: { graph: ReplayGraph }) {
   );
 }
 
+function Markdown({ source }: { source: string }) {
+  const blocks = useMemo(() => parseMarkdown(source), [source]);
+  return (
+    <div className="md">
+      {blocks.map((block, index) => (
+        <MarkdownBlock block={block} key={index} />
+      ))}
+    </div>
+  );
+}
+
+function MarkdownBlock({ block }: { block: MdBlock }) {
+  if (block.kind === 'heading') {
+    const content = <InlineSpans spans={block.spans} />;
+    return block.level === 2 ? (
+      <h3 className="md-heading">{content}</h3>
+    ) : (
+      <h4 className="md-heading md-heading-sm">{content}</h4>
+    );
+  }
+
+  if (block.kind === 'code') {
+    return (
+      <pre className={`code-block language-${block.language ?? 'text'}`}>
+        <code>{block.value}</code>
+      </pre>
+    );
+  }
+
+  if (block.kind === 'list') {
+    const items = block.items.map((item, index) => (
+      <li key={index}>
+        <InlineSpans spans={item} />
+      </li>
+    ));
+    return block.ordered ? <ol className="md-list">{items}</ol> : <ul className="md-list">{items}</ul>;
+  }
+
+  return (
+    <p>
+      <InlineSpans spans={block.spans} />
+    </p>
+  );
+}
+
+function InlineSpans({ spans }: { spans: MdInline[] }) {
+  return (
+    <>
+      {spans.map((span, index) => {
+        if (span.kind === 'bold') {
+          return <strong key={index}>{span.value}</strong>;
+        }
+        if (span.kind === 'code') {
+          return (
+            <code className="md-code" key={index}>
+              {span.value}
+            </code>
+          );
+        }
+        return <span key={index}>{span.value}</span>;
+      })}
+    </>
+  );
+}
+
 function ThemeIcon({ theme }: { theme: Scenario['theme'] }) {
   if (theme === 'vscode') {
     return <Code24Regular />;
@@ -1050,6 +1147,11 @@ function labelForTheme(theme: Scenario['theme']) {
     return 'Outlook';
   }
   return 'Copilot';
+}
+
+function assistantName(theme: Scenario['theme']) {
+  // Microsoft surfaces front the assistant as Copilot; dev/Claude surfaces as Claude.
+  return theme === 'teams' || theme === 'copilot' || theme === 'outlook' ? 'Copilot' : 'Claude';
 }
 
 function labelForAudience(audience: Scenario['audience']) {

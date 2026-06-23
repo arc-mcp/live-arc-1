@@ -145,7 +145,8 @@
       "id": "risk-plan",
       "type": "message",
       "role": "assistant",
-      "text": "Recommended path: keep the public interface stable, change only ZCL_BILLING->PROCESS, run ABAP Unit for ZTEST_BILLING_FLOW, and review the nightly batch caller because it shares the tax-engine dependency.",
+      "thinking": "`SAPContext` gave me the contracts, `SAPRead` showed the actual `process` body, and `SAPNavigate` returned three callers. The real risk isn't `ZCL_BILLING` itself — it's the shared tax engine reaching the nightly `ZCL_REBATE_JOB`, so I'll keep the interface stable and scope the edit to one method.",
+      "text": "Here's the safe change plan, built from the dependency context, the `process` source, and the where-used results above.\n\n## Change plan\n\n1. **Keep `ZIF_BILLING_CALCULATOR` stable** — it's the only public contract, so the signature stays untouched and callers don't ripple.\n2. **Edit only `ZCL_BILLING->process`** — the tax and amount logic lives in this one method.\n3. **Re-run `ZTEST_BILLING_FLOW`** — coverage already exists, so this is your regression gate.\n4. **Review `ZCL_REBATE_JOB`** — the nightly batch consumer shares `ZCL_TAX_ENGINE` and its external `TAX_RFC` lookup, so confirm the batch path before release.\n\nThis is read-only so far — no objects were changed.",
       "next": "done"
     },
     "tax-context": {
@@ -173,7 +174,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This is the ARC-1 pattern: start with system context, then open only the source and callers that matter. The user gets a bounded change plan instead of a giant class dump."
+      "text": "That's the ARC-1 pattern in one pass: start with **system context**, then open only the **source and callers** that matter. You get a bounded change plan instead of a full class dump in the prompt."
     }
   }
 }

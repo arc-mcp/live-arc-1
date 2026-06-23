@@ -148,7 +148,7 @@
       "id": "business",
       "type": "message",
       "role": "assistant",
-      "text": "The change is feasible but not isolated. It affects a domain, a data element, a budget table, and one report layout. The SAP team should plan activation order and check table locks before changing the domain.",
+      "text": "## Impact: feasible, but not isolated\n\nWidening `ZARC1_DEMO_AMOUNT_DOM` touches a four-object chain:\n\n- **Domain** `ZARC1_DEMO_AMOUNT_DOM` → **data element** `ZARC1_DEMO_AMOUNT` → **table** `ZARC1_DEMO_BUDGET` → **report** `ZARC1_DEMO_BUDGET_RPT`.\n\nBefore the SAP team changes the domain they should:\n\n1. Plan the **activation order** (domain → data element → table → report).\n2. Check **table locks** on `ZARC1_DEMO_BUDGET` — the conversion may need a maintenance window.\n3. Review the report's hardcoded output length.\n\nSo it's doable, but it's a small coordinated change, not a one-field edit.",
       "next": "done"
     },
     "technical": {
@@ -181,7 +181,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This is the end-user story: SharePoint explains the request, ARC-1 proves the real SAP blast radius."
+      "text": "That's the end-user story: SharePoint explains the request, and ARC-1 proves the real SAP blast radius behind it."
     }
   }
 }

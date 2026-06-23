@@ -343,7 +343,8 @@
       "id": "explain",
       "type": "message",
       "role": "assistant",
-      "text": "Graph readout: keep ZIF_BILLING_RULE stable, inspect ZCL_PRICING_RULES before changing allocator behavior, and add a batch-path test for ZCL_REBATE_JOB. The table edge is read-only evidence, not the first edit target.",
+      "thinking": "Two graphs, two questions: `SAPContext` gave me the dependency shape and `SAPNavigate` gave me who calls in. The dangerous edge is the same in both — the nightly rebate job reuses allocator behavior and isn't covered by tests. The interface itself needs no change.",
+      "text": "Here's how I'd turn the graph into a change-and-test plan.\n\n## Plan from the graph\n\n- **Stable contract** — `ZIF_BILLING_RULE` stays as-is; it's the implemented interface, not what you're changing.\n- **Inspect first** — read `ZCL_PRICING_RULES` before touching allocator behavior, since the allocator delegates pricing to it.\n- **Cover the batch path** — add a test for `ZCL_REBATE_JOB`; the suite covers the online allocator but not the nightly job.\n- **Read-only edge** — the `ZBILLING_ITEM` table is evidence of the read path, not the first place to edit.\n\nWant me to draft the rebate-path test fixture next?",
       "next": "atc"
     },
     "risky-edge": {
@@ -411,7 +412,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This is the Claude demo angle: a readable conversation plus a graph artifact, backed by concrete ARC-1 tool calls instead of generic architecture guessing."
+      "text": "That's the Claude angle: a readable conversation plus a graph artifact, with every edge backed by a concrete ARC-1 call instead of generic architecture guessing."
     }
   }
 }

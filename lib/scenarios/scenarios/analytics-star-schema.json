@@ -209,7 +209,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This replay turns the analytics skills into a product demo: inspect real table metadata, reuse released dimensions, stop for approval, and only then generate the analytical CDS stack."
+      "text": "This turns the analytics skills into a product demo: inspect real table metadata, reuse released dimensions, **stop for approval**, and only then generate the analytical CDS stack."
     }
   }
 }

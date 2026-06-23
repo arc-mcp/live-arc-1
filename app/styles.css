@@ -307,9 +307,10 @@ button {
 
 .client-main {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .vscode-shell {
@@ -681,7 +682,15 @@ button {
   display: flex;
   gap: 18px;
   justify-content: space-between;
-  padding: 18px;
+  padding: 14px 18px;
+}
+
+.stage-header h1 + p {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .vscode-shell .stage-header {
@@ -689,10 +698,10 @@ button {
 }
 
 .stage-header h1 {
-  font-size: 24px;
+  font-size: 21px;
   letter-spacing: 0;
-  line-height: 1.12;
-  margin: 2px 0 7px;
+  line-height: 1.14;
+  margin: 2px 0 6px;
 }
 
 .stage-header p {
@@ -744,8 +753,18 @@ button {
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 18px;
+  gap: 6px;
+  padding: 10px 18px;
+}
+
+.control-row .primary-button,
+.control-row .icon-button {
+  min-height: 32px;
+  padding: 0 11px;
+}
+
+.control-row .segmented button {
+  min-height: 30px;
 }
 
 .vscode-shell .control-row {
@@ -809,11 +828,40 @@ button {
 
 .transcript {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 12px;
   min-height: 0;
-  overflow: auto;
   padding: 18px;
+}
+
+/* The whole conversation pane scrolls as one (no nested transcript scrollbar),
+   while header, controls and decision keep their natural size. */
+.client-main > .stage-header,
+.client-main > .control-row,
+.client-main > .decision-card {
+  flex: 0 0 auto;
+}
+
+/* Keep the replay controls reachable while the conversation scrolls under them. */
+.control-row {
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.vscode-shell .control-row {
+  background: #1e1e1e;
+}
+
+.theme-claude .control-row {
+  background: #faf3ea;
+}
+
+.transcript .message,
+.transcript .tool-message {
+  scroll-margin-top: 92px;
 }
 
 .empty-transcript {
@@ -863,7 +911,8 @@ button {
   padding: 11px 13px;
 }
 
-.message.assistant p,
+.message.assistant > p,
+.message.assistant .md-surface,
 .tool-message > div:last-child {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -871,10 +920,147 @@ button {
   padding: 11px 13px;
 }
 
-.vscode-shell .message.assistant p,
+.vscode-shell .message.assistant > p,
+.vscode-shell .message.assistant .md-surface,
 .vscode-shell .tool-message > div:last-child {
   background: #252526;
   border-color: #393939;
+}
+
+.message-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.message-author {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.message.assistant .md-surface {
+  padding: 12px 14px;
+}
+
+.md {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.md p {
+  line-height: 1.5;
+  margin: 0;
+}
+
+.md-heading {
+  font-size: 14px;
+  font-weight: 780;
+  margin: 2px 0 0;
+}
+
+.md-heading-sm {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.md-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.md-list li {
+  line-height: 1.45;
+  padding-left: 2px;
+}
+
+.md-list li::marker {
+  color: var(--accent);
+  font-weight: 720;
+}
+
+.md-code {
+  background: rgba(15, 23, 42, 0.07);
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  padding: 1px 5px;
+  word-break: break-word;
+}
+
+.vscode-shell .md-code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e6edf3;
+}
+
+.theme-claude .md-code {
+  background: rgba(196, 95, 59, 0.12);
+}
+
+.md .code-block {
+  margin: 2px 0;
+}
+
+.thinking {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.thinking > summary {
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  gap: 7px;
+  list-style: none;
+  padding: 8px 11px;
+}
+
+.thinking > summary::-webkit-details-marker {
+  display: none;
+}
+
+.thinking > summary::before {
+  color: var(--accent);
+  content: "✦";
+  font-size: 12px;
+}
+
+.thinking[open] > summary {
+  border-bottom: 1px dashed var(--border);
+}
+
+.thinking-body {
+  color: var(--muted);
+  padding: 10px 12px;
+}
+
+.vscode-shell .thinking {
+  border-color: #3d3d40;
+}
+
+.status-pill-live {
+  background: #e8f7ef;
+  border-color: #b6e3c8;
+  color: var(--good);
+  font-weight: 720;
+}
+
+.status-pill-live::before {
+  background: var(--good);
+  border-radius: 999px;
+  content: "";
+  height: 7px;
+  margin-right: 6px;
+  width: 7px;
 }
 
 .avatar,
@@ -1000,7 +1186,7 @@ button {
 
 .decision-card {
   border-top: 1px solid var(--border);
-  padding: 14px 18px 18px;
+  padding: 12px 18px 14px;
 }
 
 .vscode-shell .decision-card {
@@ -1027,9 +1213,18 @@ button {
   align-items: flex-start;
   background: var(--surface);
   flex-direction: column;
+  gap: 3px;
   height: auto;
-  padding: 12px;
+  padding: 10px 12px;
   text-align: left;
+}
+
+.decision-card button span {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .decision-card button.recommended {
