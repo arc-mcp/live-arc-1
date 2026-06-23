@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { defaultScenarioId, getScenario, scenarios } from '@/lib/scenarios/data';
-import type { DecisionNode, ReplayNode, ReplayPanel, Scenario, ToolNode } from '@/lib/scenarios/types';
+import type { DecisionNode, ReplayGraph, ReplayNode, ReplayPanel, Scenario, ToolNode } from '@/lib/scenarios/types';
 
 type VisibleEvent =
   | {
@@ -352,6 +352,34 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
     );
   }
 
+  if (scenario.theme === 'claude') {
+    return (
+      <div className="client-shell claude-shell">
+        <div className="claude-sidebar" aria-hidden="true">
+          <div className="claude-logo">C</div>
+          <div className="claude-tabs">
+            <span>Chat</span>
+            <span>Code</span>
+            <span className="active">Projects</span>
+          </div>
+          <div className="claude-history">
+            <strong>ARC-1 SAP graph</strong>
+            <span>Billing graph</span>
+            <span>Risk edges</span>
+            <span>Validation gates</span>
+          </div>
+        </div>
+        <div className="client-main">{children}</div>
+        <div className="claude-context" aria-hidden="true">
+          <strong>Context</strong>
+          <span>Project: SAP modernization</span>
+          <span>Connector: ARC-1 MCP</span>
+          <span>Artifact: Dependency graph</span>
+        </div>
+      </div>
+    );
+  }
+
   if (scenario.theme === 'outlook') {
     return (
       <div className="client-shell microsoft-shell outlook-shell">
@@ -540,6 +568,7 @@ function EvidencePanel({ panel, scenario }: { panel?: ReplayPanel; scenario: Sce
       {panel.eyebrow ? <p className="eyebrow">{panel.eyebrow}</p> : null}
       <h2>{panel.title}</h2>
       {panel.body ? <p>{panel.body}</p> : null}
+      {panel.graph ? <GraphView graph={panel.graph} /> : null}
       {panel.items ? (
         <div className="evidence-items">
           {panel.items.map((item) => (
@@ -559,9 +588,48 @@ function EvidencePanel({ panel, scenario }: { panel?: ReplayPanel; scenario: Sce
   );
 }
 
+function GraphView({ graph }: { graph: ReplayGraph }) {
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+
+  return (
+    <div className="graph-view" aria-label="Dependency graph">
+      <svg className="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        {graph.edges.map((edge) => {
+          const from = nodesById.get(edge.from);
+          const to = nodesById.get(edge.to);
+          if (!from || !to) {
+            return null;
+          }
+          const midX = (from.x + to.x) / 2;
+          const midY = (from.y + to.y) / 2;
+          return (
+            <g className={`graph-edge tone-${edge.tone ?? 'neutral'}`} key={`${edge.from}-${edge.to}-${edge.label ?? ''}`}>
+              <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
+              {edge.label ? (
+                <text x={midX} y={midY}>
+                  {edge.label}
+                </text>
+              ) : null}
+            </g>
+          );
+        })}
+      </svg>
+      {graph.nodes.map((node) => (
+        <div className={`graph-node tone-${node.tone ?? 'neutral'}`} key={node.id} style={{ left: `${node.x}%`, top: `${node.y}%` }}>
+          <strong>{node.label}</strong>
+          <span>{node.kind}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ThemeIcon({ theme }: { theme: Scenario['theme'] }) {
   if (theme === 'vscode') {
     return <Code24Regular />;
+  }
+  if (theme === 'claude') {
+    return <Bot24Regular />;
   }
   if (theme === 'outlook') {
     return <Mail24Regular />;
@@ -575,6 +643,9 @@ function ThemeIcon({ theme }: { theme: Scenario['theme'] }) {
 function labelForTheme(theme: Scenario['theme']) {
   if (theme === 'vscode') {
     return 'VS Code';
+  }
+  if (theme === 'claude') {
+    return 'Claude';
   }
   if (theme === 'teams') {
     return 'Teams';

@@ -254,6 +254,82 @@ button {
   grid-template-columns: 58px 170px minmax(0, 1fr);
 }
 
+.claude-shell {
+  background: #f7f1e8;
+  border-color: #ded4c8;
+  grid-template-columns: 190px minmax(0, 1fr) 210px;
+}
+
+.claude-sidebar,
+.claude-context {
+  background: #fbf6ee;
+  border-color: #ded4c8;
+  color: #453a31;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 13px;
+}
+
+.claude-sidebar {
+  border-right: 1px solid #ded4c8;
+}
+
+.claude-context {
+  border-left: 1px solid #ded4c8;
+}
+
+.claude-logo {
+  align-items: center;
+  background: #c45f3b;
+  border-radius: 7px;
+  color: #fffaf3;
+  display: inline-flex;
+  font-weight: 800;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.claude-tabs {
+  background: #efe7db;
+  border: 1px solid #ded4c8;
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 3px;
+}
+
+.claude-tabs span {
+  border-radius: 6px;
+  color: #75695f;
+  font-size: 12px;
+  padding: 7px 0;
+  text-align: center;
+}
+
+.claude-tabs .active {
+  background: #fffaf3;
+  color: #2f2922;
+  font-weight: 760;
+}
+
+.claude-history,
+.claude-context {
+  font-size: 13px;
+}
+
+.claude-history {
+  display: grid;
+  gap: 10px;
+}
+
+.claude-history span,
+.claude-context span {
+  color: #75695f;
+}
+
 .ms-rail {
   align-items: center;
   background: #ebebf7;
@@ -621,6 +697,9 @@ button {
 .tool-trace {
   display: grid;
   gap: 8px;
+  max-height: 300px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .tool-trace details {
@@ -719,6 +798,90 @@ button {
   border-left-color: var(--danger);
 }
 
+.graph-view {
+  aspect-ratio: 1.2;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 14px;
+  min-height: 300px;
+  overflow: hidden;
+  position: relative;
+}
+
+.graph-edges {
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.graph-edge line {
+  stroke: #9aa8b7;
+  stroke-linecap: round;
+  stroke-width: 0.52;
+  vector-effect: non-scaling-stroke;
+}
+
+.graph-edge text {
+  fill: #6b7280;
+  font-size: 3.4px;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 0.9px;
+}
+
+.graph-edge.tone-good line {
+  stroke: var(--good);
+}
+
+.graph-edge.tone-warn line {
+  stroke: var(--warn);
+}
+
+.graph-edge.tone-danger line {
+  stroke: var(--danger);
+}
+
+.graph-node {
+  background: #fff;
+  border: 1px solid #c9d3df;
+  border-left: 4px solid #aab4c3;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+  display: grid;
+  gap: 2px;
+  max-width: 120px;
+  min-width: 94px;
+  padding: 8px 9px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.graph-node strong {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.graph-node span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.graph-node.tone-good {
+  border-left-color: var(--good);
+}
+
+.graph-node.tone-warn {
+  border-left-color: var(--warn);
+}
+
+.graph-node.tone-danger {
+  border-left-color: var(--danger);
+}
+
 .theme-teams {
   --accent: #5b5fc7;
   --accent-2: #464775;
@@ -732,6 +895,38 @@ button {
 .theme-copilot {
   --accent: #5b35c8;
   --accent-2: #0f6cbd;
+}
+
+.theme-claude {
+  --bg: #f4efe8;
+  --surface: #fffaf3;
+  --surface-2: #f7f1e8;
+  --border: #ded4c8;
+  --text: #2f2922;
+  --muted: #75695f;
+  --accent: #c45f3b;
+  --accent-2: #7b4a36;
+}
+
+.theme-claude .topbar,
+.theme-claude .scenario-sidebar,
+.theme-claude .evidence-panel {
+  background: #fffaf3;
+}
+
+.theme-claude .brand-mark,
+.theme-claude .avatar {
+  background: #2f2922;
+}
+
+.theme-claude .tool-icon {
+  background: #c45f3b;
+}
+
+.theme-claude .message.user p {
+  background: #f4dfd1;
+  border-color: #e0bda7;
+  color: #2f2922;
 }
 
 @media (max-width: 1220px) {
@@ -774,7 +969,8 @@ button {
 
   .client-shell,
   .vscode-shell,
-  .microsoft-shell {
+  .microsoft-shell,
+  .claude-shell {
     display: block;
     min-height: 720px;
   }
@@ -783,7 +979,9 @@ button {
   .vscode-explorer,
   .ms-rail,
   .teams-channel,
-  .mail-list {
+  .mail-list,
+  .claude-sidebar,
+  .claude-context {
     display: none;
   }
 

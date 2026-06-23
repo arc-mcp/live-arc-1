@@ -143,6 +143,212 @@ export const scenarios: Scenario[] = [
     }
   },
   {
+    id: 'claude-billing-graph',
+    title: 'Claude builds a SAP dependency graph',
+    shortTitle: 'Claude graph',
+    subtitle: 'Claude-style replay that turns ARC-1 dependency and where-used results into an object graph.',
+    theme: 'claude',
+    audience: 'architect',
+    estimatedMinutes: 3,
+    tags: ['Claude', 'Graph', 'SAPContext', 'Dependencies'],
+    outcome: 'A graph-first explanation of billing objects, risky callers, and validation gates.',
+    startNodeId: 'start',
+    nodes: {
+      start: {
+        id: 'start',
+        type: 'message',
+        role: 'user',
+        text:
+          'In Claude, map the billing change as a graph before touching code. I want to see classes, CDS views, callers, and tests.',
+        next: 'search'
+      },
+      search: {
+        id: 'search',
+        type: 'tool',
+        toolName: 'SAPSearch',
+        callId: 'search-billing-allocator',
+        args: { query: 'ZCL_BILLING_ALLOCATOR', searchType: 'object' },
+        summary: 'ARC-1 resolves the concrete SAP object before graphing surrounding context.',
+        resultFormat: 'table',
+        result: 'CLAS ZCL_BILLING_ALLOCATOR in package ZARC_BILLING. Related: ZIF_BILLING_RULE, ZCL_PRICING_RULES.',
+        panel: {
+          title: 'Resolved object',
+          kind: 'table',
+          eyebrow: 'SAPSearch(searchType="object")',
+          items: [
+            { label: 'Root object', value: 'ZCL_BILLING_ALLOCATOR', tone: 'warn' },
+            { label: 'Package', value: 'ZARC_BILLING', tone: 'neutral' },
+            { label: 'Related hits', value: 'ZIF_BILLING_RULE, ZCL_PRICING_RULES', tone: 'good' }
+          ]
+        },
+        next: 'context'
+      },
+      context: {
+        id: 'context',
+        type: 'tool',
+        toolName: 'SAPContext',
+        callId: 'ctx-billing-graph',
+        args: { action: 'deps', type: 'CLAS', name: 'ZCL_BILLING_ALLOCATOR', format: 'graph' },
+        summary: 'ARC-1 compresses source, DDIC, and CDS relationships into a graph-shaped dependency result.',
+        resultFormat: 'graph',
+        result:
+          'Root graph: ZCL_BILLING_ALLOCATOR -> ZIF_BILLING_RULE, ZCL_PRICING_RULES, ZI_BILLING_ITEM. CDS view ZI_BILLING_ITEM reads ZBILLING_ITEM. Tests cover allocator but not the rebate batch edge.',
+        panel: {
+          title: 'Billing dependency graph',
+          kind: 'graph',
+          eyebrow: 'SAPContext(action="deps")',
+          body:
+            'Claude can keep the conversation readable while ARC-1 returns a graph of the SAP objects that matter: contracts, implementation classes, CDS views, tables, callers, and tests.',
+          graph: {
+            nodes: [
+              { id: 'allocator', label: 'ZCL_BILLING_ALLOCATOR', kind: 'class', x: 50, y: 16, tone: 'warn' },
+              { id: 'rule', label: 'ZIF_BILLING_RULE', kind: 'interface', x: 21, y: 34, tone: 'good' },
+              { id: 'pricing', label: 'ZCL_PRICING_RULES', kind: 'class', x: 49, y: 38, tone: 'warn' },
+              { id: 'cds', label: 'ZI_BILLING_ITEM', kind: 'CDS view', x: 74, y: 34, tone: 'warn' },
+              { id: 'table', label: 'ZBILLING_ITEM', kind: 'table', x: 74, y: 59, tone: 'danger' },
+              { id: 'invoice', label: 'ZCL_INVOICE_SERVICE', kind: 'caller', x: 35, y: 70, tone: 'warn' },
+              { id: 'rebate', label: 'ZCL_REBATE_JOB', kind: 'batch caller', x: 63, y: 73, tone: 'danger' },
+              { id: 'test', label: 'ZTEST_BILLING_ALLOCATOR', kind: 'unit test', x: 19, y: 78, tone: 'good' }
+            ],
+            edges: [
+              { from: 'allocator', to: 'rule', label: 'implements', tone: 'good' },
+              { from: 'allocator', to: 'pricing', label: 'uses', tone: 'warn' },
+              { from: 'allocator', to: 'cds', label: 'reads', tone: 'warn' },
+              { from: 'cds', to: 'table', label: 'selects', tone: 'danger' },
+              { from: 'invoice', to: 'allocator', label: 'calls', tone: 'warn' },
+              { from: 'rebate', to: 'allocator', label: 'calls nightly', tone: 'danger' },
+              { from: 'test', to: 'allocator', label: 'covers', tone: 'good' }
+            ]
+          },
+          items: [
+            { label: 'Compression', value: 'Graph plus 61 focused source lines', tone: 'good' },
+            { label: 'Highest risk', value: 'Batch caller shares allocator behavior', tone: 'danger' },
+            { label: 'Coverage', value: 'Unit test covers allocator but not rebate job', tone: 'warn' }
+          ]
+        },
+        next: 'refs'
+      },
+      refs: {
+        id: 'refs',
+        type: 'tool',
+        toolName: 'SAPNavigate',
+        callId: 'where-used-billing-graph',
+        args: { action: 'references', type: 'CLAS', name: 'ZCL_BILLING_ALLOCATOR', depth: 2 },
+        summary: 'ARC-1 overlays where-used edges so Claude can distinguish design dependencies from runtime callers.',
+        resultFormat: 'graph',
+        result:
+          'Where-used overlay: ZCL_INVOICE_SERVICE -> ZCL_BILLING_ALLOCATOR, ZCL_REBATE_JOB -> ZCL_BILLING_ALLOCATOR, ZSRV_BILLING_API -> ZCL_INVOICE_SERVICE.',
+        panel: {
+          title: 'Where-used overlay',
+          kind: 'graph',
+          eyebrow: 'SAPNavigate(action="references")',
+          body:
+            'The second graph answers a different question: who will feel this change? That is why ARC-1 separates dependency context from where-used navigation.',
+          graph: {
+            nodes: [
+              { id: 'api', label: 'ZSRV_BILLING_API', kind: 'service', x: 19, y: 22, tone: 'warn' },
+              { id: 'invoice', label: 'ZCL_INVOICE_SERVICE', kind: 'online caller', x: 42, y: 42, tone: 'warn' },
+              { id: 'allocator', label: 'ZCL_BILLING_ALLOCATOR', kind: 'change target', x: 64, y: 42, tone: 'danger' },
+              { id: 'rebate', label: 'ZCL_REBATE_JOB', kind: 'nightly batch', x: 42, y: 72, tone: 'danger' },
+              { id: 'test', label: 'ZTEST_BILLING_ALLOCATOR', kind: 'unit test', x: 72, y: 75, tone: 'good' }
+            ],
+            edges: [
+              { from: 'api', to: 'invoice', label: 'calls', tone: 'warn' },
+              { from: 'invoice', to: 'allocator', label: 'online path', tone: 'warn' },
+              { from: 'rebate', to: 'allocator', label: 'batch path', tone: 'danger' },
+              { from: 'test', to: 'allocator', label: 'covers', tone: 'good' }
+            ]
+          },
+          items: [
+            { label: 'Online path', value: 'Service -> invoice service -> allocator', tone: 'warn' },
+            { label: 'Batch path', value: 'Rebate job -> allocator', tone: 'danger' },
+            { label: 'Test path', value: 'Unit test -> allocator', tone: 'good' }
+          ]
+        },
+        next: 'decision'
+      },
+      decision: {
+        id: 'decision',
+        type: 'decision',
+        prompt: 'What should Claude do with the graph?',
+        options: [
+          {
+            id: 'explain',
+            label: 'Explain graph',
+            description: 'Turn graph edges into a change and test plan.',
+            recommended: true,
+            next: 'explain'
+          },
+          {
+            id: 'risky-edge',
+            label: 'Open risky edge',
+            description: 'Drill into the batch caller before recommending edits.',
+            next: 'risky-edge'
+          }
+        ]
+      },
+      explain: {
+        id: 'explain',
+        type: 'message',
+        role: 'assistant',
+        text:
+          'Graph readout: keep ZIF_BILLING_RULE stable, inspect ZCL_PRICING_RULES before changing allocator behavior, and add a batch-path test for ZCL_REBATE_JOB. The table edge is read-only evidence, not the first edit target.',
+        next: 'atc'
+      },
+      'risky-edge': {
+        id: 'risky-edge',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-rebate-edge',
+        args: { type: 'CLAS', name: 'ZCL_REBATE_JOB', grep: 'ZCL_BILLING_ALLOCATOR|allocate', context: 3 },
+        summary: 'ARC-1 opens only the caller lines behind the dangerous graph edge.',
+        resultFormat: 'text',
+        result:
+          'METHOD run.\n  DATA(allocator) = NEW zcl_billing_allocator( ).\n  allocator->allocate( EXPORTING iv_mode = batch_mode ).\nENDMETHOD.',
+        panel: {
+          title: 'Risky batch edge',
+          kind: 'source',
+          eyebrow: 'SAPRead(grep)',
+          language: 'abap',
+          code:
+            'METHOD run.\n' +
+            '  DATA(allocator) = NEW zcl_billing_allocator( ).\n' +
+            '  allocator->allocate( EXPORTING iv_mode = batch_mode ).\n' +
+            'ENDMETHOD.'
+        },
+        next: 'atc'
+      },
+      atc: {
+        id: 'atc',
+        type: 'tool',
+        toolName: 'SAPDiagnose',
+        callId: 'atc-billing-graph',
+        args: { action: 'atc', type: 'CLAS', name: 'ZCL_BILLING_ALLOCATOR', includeDependencies: true },
+        summary: 'ARC-1 adds SAP-side quality signals after the graph identifies what needs validation.',
+        resultFormat: 'json',
+        result: '{"variant":"DEFAULT","findings":[{"severity":"warning","object":"ZCL_REBATE_JOB","message":"batch path not covered by test"}]}',
+        panel: {
+          title: 'Validation gates from graph',
+          kind: 'report',
+          body: 'The graph becomes a validation checklist: online caller, batch caller, CDS/table read path, and allocator tests.',
+          items: [
+            { label: 'ATC', value: '1 warning on batch-path coverage', tone: 'warn' },
+            { label: 'Unit tests', value: 'Add rebate allocation fixture', tone: 'warn' },
+            { label: 'Manual review', value: 'No interface change needed', tone: 'good' }
+          ]
+        },
+        next: 'done'
+      },
+      done: {
+        id: 'done',
+        type: 'message',
+        role: 'assistant',
+        text:
+          'This is the Claude demo angle: a readable conversation plus a graph artifact, backed by concrete ARC-1 tool calls instead of generic architecture guessing.'
+      }
+    }
+  },
+  {
     id: 'developer-cds-impact',
     title: 'CDS impact analysis',
     shortTitle: 'CDS impact',

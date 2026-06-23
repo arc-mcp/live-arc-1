@@ -1,4 +1,4 @@
-export type ScenarioTheme = 'vscode' | 'teams' | 'outlook' | 'copilot';
+export type ScenarioTheme = 'vscode' | 'teams' | 'outlook' | 'copilot' | 'claude';
 
 export type Audience = 'developer' | 'architect' | 'consultant' | 'support' | 'release-manager';
 
@@ -95,6 +95,24 @@ export interface ReplayPanel {
   items?: Array<{
     label: string;
     value: string;
+    tone?: 'good' | 'warn' | 'danger' | 'neutral';
+  }>;
+  graph?: ReplayGraph;
+}
+
+export interface ReplayGraph {
+  nodes: Array<{
+    id: string;
+    label: string;
+    kind: string;
+    x: number;
+    y: number;
+    tone?: 'good' | 'warn' | 'danger' | 'neutral';
+  }>;
+  edges: Array<{
+    from: string;
+    to: string;
+    label?: string;
     tone?: 'good' | 'warn' | 'danger' | 'neutral';
   }>;
 }

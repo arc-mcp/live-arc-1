@@ -1,5 +1,5 @@
 import { scenarios } from './data';
-import type { ArcToolName, ReplayNode } from './types';
+import type { ArcToolName, ReplayNode, ReplayPanel } from './types';
 
 const arcToolNames = new Set<ArcToolName>([
   'SAPRead',
@@ -54,5 +54,29 @@ function checkNode(scenarioId: string, node: ReplayNode, nodeIds: Set<string>, e
 
   if (node.type === 'tool' && !arcToolNames.has(node.toolName)) {
     errors.push(`${scenarioId}/${node.id}: unknown ARC-1 tool ${node.toolName}`);
+  }
+
+  if (node.type === 'tool' && node.panel) {
+    checkPanel(scenarioId, node.id, node.panel, errors);
+  }
+
+  if (node.type === 'panel') {
+    checkPanel(scenarioId, node.id, node.panel, errors);
+  }
+}
+
+function checkPanel(scenarioId: string, nodeId: string, panel: ReplayPanel, errors: string[]) {
+  if (!panel.graph) {
+    return;
+  }
+
+  const graphNodeIds = new Set(panel.graph.nodes.map((node) => node.id));
+  for (const edge of panel.graph.edges) {
+    if (!graphNodeIds.has(edge.from)) {
+      errors.push(`${scenarioId}/${nodeId}: graph edge starts at missing node ${edge.from}`);
+    }
+    if (!graphNodeIds.has(edge.to)) {
+      errors.push(`${scenarioId}/${nodeId}: graph edge ends at missing node ${edge.to}`);
+    }
   }
 }

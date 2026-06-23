@@ -12,6 +12,13 @@ describe('scenario graph', () => {
     expect(themes.has('vscode')).toBe(true);
     expect(themes.has('teams')).toBe(true);
     expect(themes.has('outlook')).toBe(true);
+    expect(themes.has('claude')).toBe(true);
+  });
+
+  it('contains graph-first Claude replay data', () => {
+    const claudeScenario = scenarios.find((scenario) => scenario.id === 'claude-billing-graph');
+    expect(claudeScenario?.theme).toBe('claude');
+    expect(claudeScenario?.tags).toContain('Graph');
   });
 
   it('starts with a dependency-oriented developer scenario', () => {
