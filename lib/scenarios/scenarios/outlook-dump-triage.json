@@ -114,7 +114,7 @@
       "id": "reply",
       "type": "message",
       "role": "assistant",
-      "text": "Draft reply: I found a DBSQL_SQL_ERROR in ZARC1_DEMO_DUMP_RPT at 02:13. The report accepts a dynamic table name and executes SELECT FROM (p_table) without validating the input. This is a code issue. Recommended fix: validate the table name against DDIC metadata before the SELECT and return a controlled error for invalid input.",
+      "text": "Here's a draft reply for operations:\n\n## Root cause\n\n`ZARC1_DEMO_DUMP_RPT` hit a `DBSQL_SQL_ERROR` at 02:13. The report takes a dynamic table name and runs `SELECT * FROM (p_table)` without validating it, so an invalid `p_table` dumps the job. This is a **code issue**, not bad data.\n\n## Recommended fix\n\n- Validate `p_table` against DDIC metadata (`DD02L`) before the SELECT.\n- Return a controlled error for unknown tables instead of dumping.\n\nI can prepare the defensive patch for a developer to review.",
       "next": "done"
     },
     "patch": {
@@ -132,7 +132,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "Support users do not need ADT open to get the initial SAP evidence, but the fix still stays a human-reviewed development task."
+      "text": "Support didn't need ADT open to get the first real SAP evidence — but the fix still stays a human-reviewed development task."
     }
   }
 }

@@ -226,14 +226,14 @@
       "id": "exec",
       "type": "message",
       "role": "assistant",
-      "text": "Teams summary: ZSD_LEGACY is not clean-core ready yet. Highest risk is central direct table access in order and user lookup utilities. I recommend a two-sprint plan: first replace central readers with released APIs/views, then clean up ownership and likely-unused reports. No code was changed.",
+      "text": "## Clean Core summary — `ZSD_LEGACY`\n\nNot cloud-ready yet, but the path is clear. ATC flags **3 P1**, **5 P2**, and **11 P3** findings across 28 objects.\n\n- **Highest risk** — direct table access in the central order and user-lookup utilities (`ZCL_SD_ORDER_READER`, `ZCL_SD_USER_LOOKUP`).\n- **Sprint 1** — replace those central readers with released APIs/views; `ZCL_SD_ORDER_READER` has 4 consumers, so it pays off first.\n- **Sprint 2** — clean up the 7 `$TMP` objects and retire the two unused reports.\n\nNo code was changed — this is a read-only assessment.",
       "next": "done"
     },
     "done": {
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This replay mirrors the package-level Clean Core skill: package inventory, ATC, API release state, where-used priority, then a human-owned backlog."
+      "text": "This mirrors the package-level Clean Core skill end to end: package inventory → ATC → API release state → where-used priority → a human-owned backlog."
     }
   }
 }

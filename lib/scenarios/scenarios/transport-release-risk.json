@@ -161,7 +161,7 @@
       "id": "summary",
       "type": "message",
       "role": "assistant",
-      "text": "Teams update: release is not ready yet. Please resolve three blockers before tomorrow: MEIER/SCHULZ need to decide ownership and release order for ZCL_SD_PRICING, SD team must activate ZSD_ORDER_RPT, and FI should review the warning on ZCL_FI_TAX_HELPER. No transport changes were made by this replay.",
+      "text": "## Release status — **not ready**\n\nThree blockers to clear before tomorrow's cut:\n\n1. **`ZCL_SD_PRICING` is locked in two requests** — MEIER (`A4HK903812`, current fix) and SCHULZ (`A4HK903799`, old cleanup) need to agree on ownership and release order.\n2. **`ZSD_ORDER_RPT` is inactive** — the SD team must activate it before the cut.\n3. **`ZCL_FI_TAX_HELPER` has a warning** — FI should review the last check.\n\nSyntax is otherwise clean, and no transport changes were made by this replay.",
       "next": "done"
     },
     "owner-list": {
@@ -199,7 +199,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This is a low-cost high-value operations demo: ARC-1 reads transport and activation evidence, then Teams gets a clear action list."
+      "text": "A high-value ops demo: ARC-1 reads the transport and activation evidence, and Teams gets a clear, owner-by-owner action list."
     }
   }
 }

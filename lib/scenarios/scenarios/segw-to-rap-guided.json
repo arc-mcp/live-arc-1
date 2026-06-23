@@ -471,7 +471,8 @@
       "id": "assistant-plan",
       "type": "message",
       "role": "assistant",
-      "text": "Migration plan before writes: reuse the existing ZDM_* tables and demo data, create ZI_DM_* interface CDS and ZC_DM_* projection CDS in dependency order, add managed draft behavior with the approve_project action, implement that action in ZBP_DM_PROJECT using EML, then add DDLX annotations, service definition, service binding, activation, publish, and read-back validation.",
+      "thinking": "The trap in this migration is the generated naming: the MPC class isn't just the service name trimmed, and the draft mapping needs the `%admin` include with computed timestamps removed from persistent mapping. I've confirmed the Project → Task → TimeEntry graph and the `ApproveProject` function import, so I can map them to RAP compositions and a bound action. Writing in dependency order is what keeps activation from failing.",
+      "text": "I have enough context from the generated MPC/DPC classes and the legacy UI. Here's the migration plan before any backend write.\n\n## Migration plan\n\n1. **Reuse the existing tables** — keep `ZDM_PROJECT`, `ZDM_TASK`, `ZDM_TIMEENTRY` and the seed data; no data migration.\n2. **Interface CDS** — create `ZI_DM_PROJECT` → `ZI_DM_TASK` → `ZI_DM_TIMEENTRY` in dependency order, with compositions matching the V2 navigation.\n3. **Projection CDS** — add `ZC_DM_PROJECT` / `ZC_DM_TASK` / `ZC_DM_TIMEENTRY` with redirected associations.\n4. **Behavior** — a managed draft BDEF on `ZI_DM_PROJECT`, plus the `approve_project` action that replaces the old function import.\n5. **Action logic** — implement `approve_project` in `ZBP_DM_PROJECT` with EML (`READ` / `MODIFY ENTITIES`) instead of direct `UPDATE` + `COMMIT WORK`.\n6. **Expose** — DDLX annotations, service definition, service binding, then **activate → publish → read-back validation**.\n\nI'll pause here for your approval before writing anything to the backend.",
       "next": "write-decision"
     },
     "write-decision": {
@@ -896,7 +897,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This SEGW migration replay is now a complete sample: it shows discovery from the generated MPC/DPC classes, preserves the Project/Task/TimeEntry graph, turns the V2 function import into RAP behavior, publishes the OData V4 binding, and shows the downstream UI impact."
+      "text": "That's the full SEGW → RAP sample: discovery from the generated MPC/DPC classes, the preserved **Project → Task → TimeEntry** graph, the V2 function import turned into RAP behavior, the published **OData V4** binding, and the downstream UI impact — all backed by concrete ARC-1 reads and writes."
     }
   }
 }

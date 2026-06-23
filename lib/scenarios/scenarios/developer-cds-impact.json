@@ -85,7 +85,7 @@
       "id": "business",
       "type": "message",
       "role": "assistant",
-      "text": "Low blast radius: one projection and one ABAP consumer depend directly on I_COUNTRY. Review C_COUNTRY and CL_COUNTRY_API before changing fields or semantics.",
+      "text": "## Impact: low blast radius\n\nOnly two objects depend directly on `I_COUNTRY`:\n\n- **Projection** `C_COUNTRY` (consumption view)\n- **ABAP consumer** `CL_COUNTRY_API`\n\nReview both before changing fields or semantics — but this is a contained change, not a system-wide one.",
       "next": "done"
     },
     "technical": {
@@ -103,7 +103,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "The impact result is scoped enough to become a review checklist instead of a broad source search."
+      "text": "The result is scoped enough to become a **review checklist** instead of a broad source search."
     }
   }
 }

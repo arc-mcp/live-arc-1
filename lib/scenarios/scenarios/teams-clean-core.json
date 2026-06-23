@@ -141,14 +141,14 @@
       "id": "backlog",
       "type": "message",
       "role": "assistant",
-      "text": "Backlog item: Refactor ZCL_ARC1_DEMO_CCORE away from direct USR02/BUT000 reads. Acceptance: no direct internal SAP table reads, replacement uses released API/view where available, ATC stays clean, and behavior is covered by unit tests.",
+      "text": "## Backlog item\n\n**Refactor `ZCL_ARC1_DEMO_CCORE` away from direct `USR02` / `BUT000` reads.**\n\nAcceptance criteria:\n\n- No direct internal SAP table reads.\n- Replacement uses a released API or view where available (e.g. `I_BusinessUserBasic`, released business partner views).\n- ATC stays clean.\n- Behavior is covered by unit tests.",
       "next": "done"
     },
     "done": {
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This is useful in Teams because the answer is evidence-backed, not a generic Clean Core explanation."
+      "text": "Useful in Teams because the answer is **evidence-backed** — not a generic Clean Core explanation."
     }
   }
 }

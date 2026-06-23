@@ -222,7 +222,7 @@
       "id": "review",
       "type": "message",
       "role": "assistant",
-      "text": "PR review: no blocking issue found. I checked activated ZCL_ARC1_TASK_SERVICE->LIST_TASKS, confirmed ZARC1_D_STATUS allows X = Cancelled, ran SAP syntax on ZCL_ARC1_TEST_HELPERS, and ran ABAP Unit with 7/7 passing tests. ATC reports one P3 informational finding on the test helper only. Suggested human check: keep the new cancelled-task fixture readable and ensure the PR description says why X is now covered.",
+      "text": "## PR #20 review — **no blocking issues**\n\nChecked against what SAP actually has activated, not just the diff:\n\n- ✅ Read activated `ZCL_ARC1_TASK_SERVICE->list_tasks`\n- ✅ Confirmed `ZARC1_D_STATUS` allows `X = Cancelled`\n- ✅ SAP syntax check on `ZCL_ARC1_TEST_HELPERS` — clean\n- ✅ ABAP Unit — **7/7 passing**\n- ⚠️ ATC — one **P3 informational** finding, on the test helper only\n\n**Suggested human check:** keep the new cancelled-task fixture readable, and note in the PR description why `X` is now covered.",
       "next": "done"
     },
     "dump": {
@@ -265,7 +265,7 @@
       "id": "done",
       "type": "message",
       "role": "assistant",
-      "text": "This scenario showcases the GitHub pattern from the sample repo: abapGit and abaplint cover the file workflow, while ARC-1 contributes activated source, SAP diagnostics, ATC, ABAP Unit, and ST22 evidence."
+      "text": "That's the GitHub pattern from the sample repo: abapGit and abaplint own the file workflow, while ARC-1 adds activated source, SAP syntax, ABAP Unit, ATC, and ST22 evidence the diff alone can't show."
     }
   }
 }
