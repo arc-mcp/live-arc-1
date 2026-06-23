@@ -45,6 +45,17 @@ button {
   min-height: 100vh;
 }
 
+.workbench.scenarios-collapsed {
+  grid-template-areas:
+    "top top"
+    "replay evidence";
+  grid-template-columns: minmax(640px, 1fr) 420px;
+}
+
+.workbench.scenarios-collapsed .scenario-sidebar {
+  display: none;
+}
+
 .topbar {
   align-items: center;
   background: rgba(255, 255, 255, 0.9);
@@ -86,8 +97,22 @@ button {
 }
 
 .topbar-actions {
+  align-items: center;
   display: flex;
   gap: 8px;
+}
+
+.topbar-toggle {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
 }
 
 .status-pill {
@@ -790,6 +815,7 @@ button {
 .tool-message p {
   line-height: 1.45;
   margin: 0;
+  white-space: pre-line;
 }
 
 .message.user {
@@ -861,8 +887,24 @@ button {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   margin-top: 8px;
-  overflow-wrap: anywhere;
   padding: 7px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tool-message-detail {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tool-message-detail span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .decision-card {
@@ -875,8 +917,13 @@ button {
 }
 
 .decision-card p {
-  font-weight: 760;
+  font-weight: 650;
+  line-height: 1.25;
   margin: 0 0 10px;
+}
+
+.vscode-shell .decision-card p {
+  font-size: 15px;
 }
 
 .decision-card > div {
@@ -955,12 +1002,9 @@ button {
 .tool-trace {
   display: grid;
   gap: 8px;
-  max-height: 300px;
-  overflow: auto;
-  padding-right: 2px;
 }
 
-.tool-trace details {
+.tool-trace-item {
   padding: 10px;
 }
 
@@ -968,16 +1012,43 @@ button {
   align-items: center;
   cursor: pointer;
   display: flex;
+  gap: 10px;
   justify-content: space-between;
 }
 
-.tool-trace summary span {
+.tool-trace summary > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tool-trace summary strong {
   color: var(--accent);
   font-weight: 760;
 }
 
 .tool-trace summary small {
   color: var(--muted);
+  font-size: 12px;
+}
+
+.tool-trace-body {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.trace-block {
+  display: grid;
+  gap: 5px;
+}
+
+.trace-block > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .tool-trace pre,
@@ -988,14 +1059,18 @@ button {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   line-height: 1.45;
-  overflow: auto;
+  overflow: visible;
   padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .tool-trace p {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .scenario-outcome,
@@ -1197,6 +1272,15 @@ button {
     grid-template-rows: 64px minmax(760px, auto) auto;
   }
 
+  .workbench.scenarios-collapsed {
+    grid-template-areas:
+      "top"
+      "replay"
+      "evidence";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 64px minmax(760px, auto) auto;
+  }
+
   .evidence-panel {
     border-left: 0;
     border-top: 1px solid var(--border);
@@ -1216,6 +1300,14 @@ button {
     position: sticky;
     top: 0;
     z-index: 40;
+  }
+
+  .topbar-toggle {
+    padding: 0 10px;
+  }
+
+  .topbar-actions .status-pill {
+    display: none;
   }
 
   .brand {
@@ -1395,7 +1487,13 @@ button {
 
 @media (max-width: 560px) {
   .topbar-actions {
-    display: none;
+    display: flex;
+  }
+
+  .topbar-toggle {
+    font-size: 13px;
+    min-height: 30px;
+    padding: 0 9px;
   }
 
   .scenario-groups {

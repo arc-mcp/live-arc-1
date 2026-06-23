@@ -465,12 +465,19 @@
           }
         ]
       },
+      "next": "assistant-plan"
+    },
+    "assistant-plan": {
+      "id": "assistant-plan",
+      "type": "message",
+      "role": "assistant",
+      "text": "Migration plan before writes: reuse the existing ZDM_* tables and demo data, create ZI_DM_* interface CDS and ZC_DM_* projection CDS in dependency order, add managed draft behavior with the approve_project action, implement that action in ZBP_DM_PROJECT using EML, then add DDLX annotations, service definition, service binding, activation, publish, and read-back validation.",
       "next": "write-decision"
     },
     "write-decision": {
       "id": "write-decision",
       "type": "decision",
-      "prompt": "After approval in a real session, ARC-1 writes the objects in dependency order.",
+      "prompt": "Plan: reuse ZDM_* tables, generate ZI/ZC CDS, add managed draft behavior and approve_project, publish ZUI_DM_PROJECTS_O4, then validate by reading back the generated objects. After approval, ARC-1 writes the objects in dependency order.",
       "options": [
         {
           "id": "backend",

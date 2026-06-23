@@ -19,13 +19,15 @@ import {
   Activity,
   CirclePlay,
   Layers3,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pause,
   Play,
   RefreshCw,
   StepForward,
   Wrench
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type Ref, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defaultScenarioId, getScenario, scenarios } from '@/lib/scenarios/data';
 import type {
   DecisionNode,
@@ -109,6 +111,7 @@ const initialState = (scenario: Scenario): ReplayState => ({
 export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: string }) {
   const scenario = getScenario(initialScenarioId) ?? getScenario(defaultScenarioId) ?? scenarios[0];
   const [state, setState] = useState<ReplayState>(() => initialState(scenario));
+  const [scenariosOpen, setScenariosOpen] = useState(true);
   const groupedScenarios = useMemo(() => groupScenarios(scenario.group), [scenario.group]);
 
   useEffect(() => {
@@ -204,7 +207,7 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <main className={`workbench theme-${scenario.theme}`}>
+      <main className={`workbench theme-${scenario.theme} ${scenariosOpen ? '' : 'scenarios-collapsed'}`}>
         <header className="topbar">
           <Link className="brand" href="/">
             <span className="brand-mark">ARC</span>
@@ -214,12 +217,22 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
             </span>
           </Link>
           <div className="topbar-actions">
+            <button
+              aria-controls="scenario-sidebar"
+              aria-expanded={scenariosOpen}
+              className="topbar-toggle"
+              onClick={() => setScenariosOpen((open) => !open)}
+              type="button"
+            >
+              {scenariosOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+              {scenariosOpen ? 'Hide scenarios' : 'Show scenarios'}
+            </button>
             <span className="status-pill">Replay only</span>
             <span className="status-pill">{labelForTheme(scenario.theme)}</span>
           </div>
         </header>
 
-        <aside className="scenario-sidebar" aria-label="Available scenarios">
+        <aside className="scenario-sidebar" id="scenario-sidebar" aria-label="Available scenarios">
           <div className="sidebar-heading">
             <span>Scenarios</span>
             <small>Jump in directly</small>
@@ -590,6 +603,12 @@ function getVscodeWorkspace(scenario: Scenario): VscodeWorkspace {
 }
 
 function Transcript({ events, scenario }: { events: VisibleEvent[]; scenario: Scenario }) {
+  const latestEventRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    latestEventRef.current?.scrollIntoView({ block: 'start' });
+  }, [events.length]);
+
   if (!events.length) {
     return (
       <div className="empty-transcript">
@@ -605,10 +624,12 @@ function Transcript({ events, scenario }: { events: VisibleEvent[]; scenario: Sc
 
   return (
     <div className="transcript" aria-live="polite">
-      {events.map((event) => {
+      {events.map((event, index) => {
+        const eventRef = index === events.length - 1 ? latestEventRef : undefined;
+
         if (event.kind === 'choice') {
           return (
-            <article className="message user" key={event.id}>
+            <article className="message user" key={event.id} ref={eventRef}>
               <div className="avatar">U</div>
               <div>
                 <small>{event.prompt}</small>
@@ -623,16 +644,16 @@ function Transcript({ events, scenario }: { events: VisibleEvent[]; scenario: Sc
           return null;
         }
 
-        return <TranscriptNode key={node.id} node={node} />;
+        return <TranscriptNode key={node.id} node={node} nodeRef={eventRef} />;
       })}
     </div>
   );
 }
 
-function TranscriptNode({ node }: { node: ReplayNode }) {
+function TranscriptNode({ node, nodeRef }: { node: ReplayNode; nodeRef?: Ref<HTMLElement> }) {
   if (node.type === 'message') {
     return (
-      <article className={`message ${node.role}`}>
+      <article className={`message ${node.role}`} ref={nodeRef}>
         <div className="avatar">{node.role === 'user' ? 'U' : 'A'}</div>
         <p>{node.text}</p>
       </article>
@@ -640,8 +661,11 @@ function TranscriptNode({ node }: { node: ReplayNode }) {
   }
 
   if (node.type === 'tool') {
+    const args = formatToolPayload(node.args);
+    const result = formatToolResult(node.result);
+
     return (
-      <article className="tool-message">
+      <article className="tool-message" ref={nodeRef}>
         <div className="tool-icon">
           <Wrench size={16} />
         </div>
@@ -651,7 +675,16 @@ function TranscriptNode({ node }: { node: ReplayNode }) {
             <span>{node.callId}</span>
           </div>
           <p>{node.summary}</p>
-          <code>{JSON.stringify(node.args)}</code>
+          <div className="tool-message-detail">
+            <div>
+              <span>Call</span>
+              <code>{args}</code>
+            </div>
+            <div>
+              <span>Response</span>
+              <code>{result}</code>
+            </div>
+          </div>
         </div>
       </article>
     );
@@ -659,7 +692,7 @@ function TranscriptNode({ node }: { node: ReplayNode }) {
 
   if (node.type === 'panel') {
     return (
-      <article className="message assistant">
+      <article className="message assistant" ref={nodeRef}>
         <div className="avatar">A</div>
         <p>Opened evidence panel: {node.panel.title}</p>
       </article>
@@ -667,6 +700,18 @@ function TranscriptNode({ node }: { node: ReplayNode }) {
   }
 
   return null;
+}
+
+function formatToolPayload(value: Record<string, unknown>) {
+  return JSON.stringify(value, null, 2);
+}
+
+function formatToolResult(result: string) {
+  const compact = result.replace(/\s+/g, ' ').trim();
+  if (compact.length <= 420) {
+    return compact;
+  }
+  return `${compact.slice(0, 420)}...`;
 }
 
 function DecisionCard({
@@ -704,13 +749,24 @@ function ToolTrace({ tools }: { tools: ToolNode[] }) {
   return (
     <div className="tool-trace">
       {tools.map((tool, index) => (
-        <details key={tool.callId} open={index === tools.length - 1}>
+        <details className="tool-trace-item" key={tool.callId} open={index === tools.length - 1}>
           <summary>
-            <span>{tool.toolName}</span>
+            <span>
+              <strong>{tool.toolName}</strong>
+              <small>{tool.callId}</small>
+            </span>
             <small>{tool.resultFormat}</small>
           </summary>
-          <pre>{JSON.stringify(tool.args, null, 2)}</pre>
-          <p>{tool.result}</p>
+          <div className="tool-trace-body">
+            <div className="trace-block">
+              <span>Request</span>
+              <pre>{formatToolPayload(tool.args)}</pre>
+            </div>
+            <div className="trace-block">
+              <span>Response</span>
+              <p>{tool.result}</p>
+            </div>
+          </div>
         </details>
       ))}
     </div>
