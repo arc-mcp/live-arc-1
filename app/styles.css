@@ -1091,7 +1091,7 @@ button {
 
 .empty-panel,
 .scenario-outcome,
-.evidence-card,
+.evidence-history-item,
 .tool-trace details {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -1189,8 +1189,61 @@ button {
   overflow-wrap: anywhere;
 }
 
-.scenario-outcome,
-.evidence-card {
+.evidence-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.evidence-history-item {
+  overflow: hidden;
+}
+
+.evidence-history-item summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 11px 13px;
+}
+
+.evidence-history-item[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.evidence-history-item summary > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.evidence-history-item summary strong {
+  color: var(--text);
+  font-weight: 760;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evidence-history-item summary small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.evidence-history-item summary > small {
+  flex: 0 0 auto;
+  max-width: 42%;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evidence-history-body {
+  padding: 14px;
+}
+
+.scenario-outcome {
   padding: 16px;
 }
 
@@ -1199,12 +1252,12 @@ button {
 }
 
 .scenario-outcome h2,
-.evidence-card h2 {
+.evidence-history-body h2 {
   margin: 8px 0;
 }
 
 .scenario-outcome p,
-.evidence-card p {
+.evidence-history-body p {
   color: var(--muted);
   line-height: 1.45;
 }

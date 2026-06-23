@@ -43,6 +43,7 @@ import type {
 type VisibleEvent =
   | {
       kind: 'node';
+      id: string;
       nodeId: string;
     }
   | {
@@ -55,6 +56,13 @@ type VisibleEvent =
     };
 
 type Speed = '1x' | '2x' | 'instant';
+
+interface EvidenceEntry {
+  id: string;
+  panel: ReplayPanel;
+  sourceLabel: string;
+  sourceMeta: string;
+}
 
 const toolServerLabels = {
   'arc-1': 'ARC-1',
@@ -87,7 +95,6 @@ interface ReplayState {
   events: VisibleEvent[];
   currentNodeId?: string;
   activeDecision?: DecisionNode;
-  activePanel?: ReplayPanel;
   isPlaying: boolean;
   speed: Speed;
 }
@@ -112,7 +119,6 @@ interface VscodeWorkspace {
 const initialState = (scenario: Scenario): ReplayState => ({
   events: [],
   currentNodeId: scenario.startNodeId,
-  activePanel: undefined,
   activeDecision: undefined,
   isPlaying: false,
   speed: '1x'
@@ -138,6 +144,7 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
   );
 
   const toolNodes = visibleNodes.filter((node): node is ToolNode => node.type === 'tool');
+  const evidenceItems = useMemo(() => collectEvidenceItems(visibleNodes), [visibleNodes]);
   const progress = Math.min(100, Math.round((state.events.length / Math.max(Object.keys(scenario.nodes).length - 1, 1)) * 100));
 
   const assistantMessages = useMemo(() => toAssistantMessages(scenario, state.events), [scenario, state.events]);
@@ -165,14 +172,19 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
         return { ...current, activeDecision: node, isPlaying: false };
       }
 
-      const nextEvents = [...current.events, { kind: 'node' as const, nodeId: node.id }];
-      const nextPanel = node.type === 'tool' && node.panel ? node.panel : node.type === 'panel' ? node.panel : current.activePanel;
+      const nextEvents = [
+        ...current.events,
+        {
+          kind: 'node' as const,
+          id: `${node.id}-${current.events.length}`,
+          nodeId: node.id
+        }
+      ];
 
       return {
         ...current,
         events: nextEvents,
         currentNodeId: node.next,
-        activePanel: nextPanel,
         isPlaying: Boolean(node.next)
       };
     });
@@ -377,7 +389,7 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
               <Layers3 size={16} />
               <span>Evidence</span>
             </div>
-            <EvidencePanel panel={state.activePanel} scenario={scenario} />
+            <EvidencePanel evidenceItems={evidenceItems} scenario={scenario} />
           </section>
         </aside>
       </main>
@@ -385,8 +397,36 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
   );
 }
 
+function collectEvidenceItems(nodes: ReplayNode[]): EvidenceEntry[] {
+  return nodes.flatMap((node, index) => {
+    if (node.type === 'panel') {
+      return [
+        {
+          id: `${index}-${node.id}`,
+          panel: node.panel,
+          sourceLabel: 'Scenario context',
+          sourceMeta: node.panel.eyebrow ?? node.panel.kind
+        }
+      ];
+    }
+
+    if (node.type === 'tool' && node.panel) {
+      return [
+        {
+          id: `${index}-${node.id}`,
+          panel: node.panel,
+          sourceLabel: node.toolName,
+          sourceMeta: node.callId
+        }
+      ];
+    }
+
+    return [];
+  });
+}
+
 function toAssistantMessages(scenario: Scenario, events: VisibleEvent[]): ThreadMessageLike[] {
-  return events.map((event, index) => {
+  return events.map((event) => {
     if (event.kind === 'choice') {
       return {
         id: event.id,
@@ -398,7 +438,7 @@ function toAssistantMessages(scenario: Scenario, events: VisibleEvent[]): Thread
     const node = scenario.nodes[event.nodeId];
     if (!node) {
       return {
-        id: `missing-${index}`,
+        id: event.id,
         role: 'assistant',
         content: ''
       };
@@ -406,7 +446,7 @@ function toAssistantMessages(scenario: Scenario, events: VisibleEvent[]): Thread
 
     if (node.type === 'message') {
       return {
-        id: node.id,
+        id: event.id,
         role: node.role,
         content: node.text
       };
@@ -414,7 +454,7 @@ function toAssistantMessages(scenario: Scenario, events: VisibleEvent[]): Thread
 
     if (node.type === 'tool') {
       return {
-        id: node.id,
+        id: event.id,
         role: 'assistant',
         content: [
           { type: 'text', text: node.summary },
@@ -432,14 +472,14 @@ function toAssistantMessages(scenario: Scenario, events: VisibleEvent[]): Thread
 
     if (node.type === 'panel') {
       return {
-        id: node.id,
+        id: event.id,
         role: 'assistant',
         content: node.panel.body ?? node.panel.title
       };
     }
 
     return {
-      id: node.id,
+      id: event.id,
       role: 'assistant',
       content: node.prompt
     };
@@ -724,7 +764,7 @@ function Transcript({ events, scenario }: { events: VisibleEvent[]; scenario: Sc
           return null;
         }
 
-        return <TranscriptNode key={node.id} node={node} nodeRef={eventRef} />;
+        return <TranscriptNode key={event.id} node={node} nodeRef={eventRef} />;
       })}
     </div>
   );
@@ -851,7 +891,7 @@ function ToolTrace({ tools }: { tools: ToolNode[] }) {
   return (
     <div className="tool-trace">
       {tools.map((tool, index) => (
-        <details className="tool-trace-item" key={tool.callId} open={index === tools.length - 1}>
+        <details className="tool-trace-item" key={`${index}-${tool.callId}`} open={index === tools.length - 1}>
           <summary>
             <span>
               <strong>{tool.toolName}</strong>
@@ -878,8 +918,8 @@ function ToolTrace({ tools }: { tools: ToolNode[] }) {
   );
 }
 
-function EvidencePanel({ panel, scenario }: { panel?: ReplayPanel; scenario: Scenario }) {
-  if (!panel) {
+function EvidencePanel({ evidenceItems, scenario }: { evidenceItems: EvidenceEntry[]; scenario: Scenario }) {
+  if (!evidenceItems.length) {
     return (
       <div className="scenario-outcome">
         <ThemeIcon theme={scenario.theme} />
@@ -895,7 +935,32 @@ function EvidencePanel({ panel, scenario }: { panel?: ReplayPanel; scenario: Sce
   }
 
   return (
-    <div className={`evidence-card evidence-${panel.kind}`}>
+    <div className="evidence-stack">
+      {evidenceItems.map((entry, index) => (
+        <details
+          className={`evidence-history-item evidence-${entry.panel.kind}`}
+          key={entry.id}
+          open={index === evidenceItems.length - 1}
+        >
+          <summary>
+            <span>
+              <strong>{entry.panel.title}</strong>
+              <small>{entry.sourceLabel}</small>
+            </span>
+            <small>{entry.sourceMeta}</small>
+          </summary>
+          <div className="evidence-history-body">
+            <EvidenceCardContent panel={entry.panel} />
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function EvidenceCardContent({ panel }: { panel: ReplayPanel }) {
+  return (
+    <>
       {panel.eyebrow ? <p className="eyebrow">{panel.eyebrow}</p> : null}
       <h2>{panel.title}</h2>
       {panel.body ? <p>{panel.body}</p> : null}
@@ -915,7 +980,7 @@ function EvidencePanel({ panel, scenario }: { panel?: ReplayPanel; scenario: Sce
           <code>{panel.code}</code>
         </pre>
       ) : null}
-    </div>
+    </>
   );
 }
 
