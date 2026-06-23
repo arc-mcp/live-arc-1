@@ -1,0 +1,11 @@
+.DS_Store
+.next/
+out/
+node_modules/
+coverage/
+*.log
+*.tsbuildinfo
+playwright-*.png
+.env
+.env.*
+!.env.example
