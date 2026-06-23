@@ -2,6 +2,15 @@ export type ScenarioTheme = 'vscode' | 'teams' | 'outlook' | 'copilot' | 'claude
 
 export type Audience = 'developer' | 'architect' | 'consultant' | 'support' | 'release-manager';
 
+export type ScenarioGroup =
+  | 'Understanding'
+  | 'Build & Test'
+  | 'Modernization'
+  | 'Governance'
+  | 'Operations'
+  | 'Analytics'
+  | 'Business Impact';
+
 export type ArcToolName =
   | 'SAPRead'
   | 'SAPSearch'
@@ -33,6 +42,7 @@ export interface Scenario {
   shortTitle: string;
   subtitle: string;
   theme: ScenarioTheme;
+  group: ScenarioGroup;
   audience: Audience;
   estimatedMinutes: number;
   tags: string[];

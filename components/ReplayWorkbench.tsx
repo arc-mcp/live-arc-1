@@ -27,7 +27,15 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { defaultScenarioId, getScenario, scenarios } from '@/lib/scenarios/data';
-import type { DecisionNode, ReplayGraph, ReplayNode, ReplayPanel, Scenario, ToolNode } from '@/lib/scenarios/types';
+import type {
+  DecisionNode,
+  ReplayGraph,
+  ReplayNode,
+  ReplayPanel,
+  Scenario,
+  ScenarioGroup,
+  ToolNode
+} from '@/lib/scenarios/types';
 
 type VisibleEvent =
   | {
@@ -42,6 +50,26 @@ type VisibleEvent =
     };
 
 type Speed = '1x' | '2x' | 'instant';
+
+const scenarioGroupOrder: ScenarioGroup[] = [
+  'Understanding',
+  'Build & Test',
+  'Modernization',
+  'Governance',
+  'Operations',
+  'Analytics',
+  'Business Impact'
+];
+
+function groupScenarios(activeGroup: ScenarioGroup) {
+  const orderedGroups = [activeGroup, ...scenarioGroupOrder.filter((group) => group !== activeGroup)];
+  return orderedGroups
+    .map((group) => ({
+      group,
+      items: scenarios.filter((scenario) => scenario.group === group)
+    }))
+    .filter((group) => group.items.length > 0);
+}
 
 interface ReplayState {
   events: VisibleEvent[];
@@ -64,6 +92,7 @@ const initialState = (scenario: Scenario): ReplayState => ({
 export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: string }) {
   const scenario = getScenario(initialScenarioId) ?? getScenario(defaultScenarioId) ?? scenarios[0];
   const [state, setState] = useState<ReplayState>(() => initialState(scenario));
+  const groupedScenarios = useMemo(() => groupScenarios(scenario.group), [scenario.group]);
 
   useEffect(() => {
     setState(initialState(scenario));
@@ -178,27 +207,38 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
             <span>Scenarios</span>
             <small>Jump in directly</small>
           </div>
-          <div className="scenario-list">
-            {scenarios.map((item) => (
-              <Link
-                aria-current={item.id === scenario.id ? 'page' : undefined}
-                className={`scenario-card ${item.id === scenario.id ? 'active' : ''}`}
-                href={`/scenarios/${item.id}/`}
-                key={item.id}
-              >
-                <div className="scenario-card-top">
-                  <ThemeIcon theme={item.theme} />
-                  <span>{labelForTheme(item.theme)}</span>
-                  <small>{item.estimatedMinutes} min</small>
-                </div>
-                <strong>{item.shortTitle}</strong>
-                <p>{item.subtitle}</p>
-                <div className="tag-row">
-                  {item.tags.slice(0, 3).map((tag) => (
-                    <span key={tag}>{tag}</span>
+          <div className="scenario-groups">
+            {groupedScenarios.map((group) => (
+              <section className="scenario-group" key={group.group}>
+                <h2>
+                  {group.group}
+                  <span>{group.items.length}</span>
+                </h2>
+                <div className="scenario-list">
+                  {group.items.map((item) => (
+                    <Link
+                      aria-current={item.id === scenario.id ? 'page' : undefined}
+                      className={`scenario-card ${item.id === scenario.id ? 'active' : ''}`}
+                      href={`/scenarios/${item.id}/`}
+                      key={item.id}
+                    >
+                      <div className="scenario-card-top">
+                        <ThemeIcon theme={item.theme} />
+                        <span>{labelForTheme(item.theme)}</span>
+                        <small>{item.estimatedMinutes} min</small>
+                      </div>
+                      <span className="scenario-group-label">{item.group}</span>
+                      <strong>{item.shortTitle}</strong>
+                      <p>{item.subtitle}</p>
+                      <div className="tag-row">
+                        {item.tags.slice(0, 3).map((tag) => (
+                          <span key={tag}>{tag}</span>
+                        ))}
+                      </div>
+                    </Link>
                   ))}
                 </div>
-              </Link>
+              </section>
             ))}
           </div>
         </aside>

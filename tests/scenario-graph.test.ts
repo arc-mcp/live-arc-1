@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { scenarios } from '../lib/scenarios/data';
+import type { ScenarioGroup } from '../lib/scenarios/types';
 import { validateScenarios } from '../lib/scenarios/validate';
 
 describe('scenario graph', () => {
@@ -13,6 +14,25 @@ describe('scenario graph', () => {
     expect(themes.has('teams')).toBe(true);
     expect(themes.has('outlook')).toBe(true);
     expect(themes.has('claude')).toBe(true);
+    expect(themes.has('copilot')).toBe(true);
+  });
+
+  it('groups the expanded catalog into workflow lanes', () => {
+    const requiredGroups: ScenarioGroup[] = [
+      'Understanding',
+      'Build & Test',
+      'Modernization',
+      'Governance',
+      'Operations',
+      'Analytics',
+      'Business Impact'
+    ];
+    const groups = new Set(scenarios.map((scenario) => scenario.group));
+
+    expect(scenarios.length).toBeGreaterThanOrEqual(12);
+    for (const group of requiredGroups) {
+      expect(groups.has(group)).toBe(true);
+    }
   });
 
   it('contains graph-first Claude replay data', () => {
