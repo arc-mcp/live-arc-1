@@ -45,4 +45,27 @@ describe('scenario graph', () => {
     expect(scenarios[0]?.id).toBe('developer-dependency-map');
     expect(scenarios[0]?.tags).toContain('Dependencies');
   });
+
+  it('keeps the SEGW to RAP replay as a complete migration sample', () => {
+    const scenario = scenarios.find((candidate) => candidate.id === 'segw-to-rap-guided');
+
+    expect(scenario).toBeDefined();
+    if (!scenario) {
+      return;
+    }
+
+    const nodes = Object.values(scenario.nodes);
+    const toolNodes = nodes.filter((node) => node.type === 'tool');
+    const graphNode = scenario.nodes['rap-graph'];
+
+    expect(toolNodes.length).toBeGreaterThanOrEqual(12);
+    expect(scenario.tags).toEqual(expect.arrayContaining(['SEGW', 'OData V4', 'UI5']));
+    expect(JSON.stringify(scenario.nodes)).toContain('ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT');
+
+    expect(graphNode?.type).toBe('panel');
+    if (graphNode?.type === 'panel') {
+      expect(graphNode.panel.graph?.nodes.length).toBeGreaterThanOrEqual(8);
+      expect(graphNode.panel.graph?.edges.length).toBeGreaterThanOrEqual(7);
+    }
+  });
 });

@@ -963,20 +963,39 @@ export const scenarios: Scenario[] = [
     id: 'segw-to-rap-guided',
     title: 'SEGW to RAP guided modernization',
     shortTitle: 'SEGW to RAP',
-    subtitle: 'Longer VS Code replay showing discovery, approval, generated RAP artifacts, and validation gates.',
+    subtitle: 'Full VS Code replay based on the migration sample: SEGW model extraction, RAP generation, activation, publish, and UI follow-up.',
     theme: 'vscode',
     group: 'Modernization',
     audience: 'developer',
-    estimatedMinutes: 4,
-    tags: ['VS Code', 'RAP', 'SEGW', 'Modernization'],
-    outcome: 'A legacy OData V2 service becomes a planned RAP/OData V4 replacement.',
+    estimatedMinutes: 6,
+    tags: ['VS Code', 'RAP', 'SEGW', 'OData V4', 'UI5'],
+    outcome: 'A legacy SEGW OData V2 service is turned into a believable RAP/OData V4 migration plan with generated artifacts and validation gates.',
     startNodeId: 'start',
     nodes: {
       start: {
         id: 'start',
         type: 'message',
         role: 'user',
-        text: 'Migrate ZDEMO_MIG_PROJECTS_SRV from SEGW to RAP. Stop before writes and show the extracted model.',
+        text:
+          'Open the migration sample and replay the full SEGW to RAP path for ZDEMO_MIG_PROJECTS_SRV. Show the legacy contract, the generated RAP objects, the validation gates, and the UI follow-up.',
+        next: 'workspace'
+      },
+      workspace: {
+        id: 'workspace',
+        type: 'panel',
+        panel: {
+          title: 'Migration sample workspace',
+          kind: 'table',
+          eyebrow: 'arc-1-legacy-ui5-rap-conversion',
+          body:
+            'The replay is grounded in the local sample repository: legacy SEGW classes, seeded demo data, generated RAP artifacts, and the skill run notes are all visible in the VS Code explorer.',
+          items: [
+            { label: 'Legacy package', value: 'ZDEMO_MIG', tone: 'neutral' },
+            { label: 'Legacy service', value: 'ZDEMO_MIG_PROJECTS_SRV', tone: 'neutral' },
+            { label: 'Seed data', value: '5 projects, 15 tasks, 25 time entries', tone: 'good' },
+            { label: 'Target packages', value: 'ZDEMO_MIG_DM and ZDEMO_MIG_RAP', tone: 'good' }
+          ]
+        },
         next: 'features'
       },
       features: {
@@ -985,117 +1004,571 @@ export const scenarios: Scenario[] = [
         toolName: 'SAPManage',
         callId: 'feature-probe',
         args: { action: 'features' },
-        summary: 'ARC-1 probes the real backend before choosing a generation path.',
+        summary: 'ARC-1 probes the backend before choosing a migration path and write order.',
         resultFormat: 'json',
-        result: '{"release":"7.58","rap":true,"serviceBinding":true,"transport":true}',
+        result:
+          '{"system":"S/4HANA 2023 on-prem trial","sapBasis":"7.58","client":"001","user":"DEMOUSER","rap":true,"serviceBinding":true,"transport":true,"draft":true}',
         panel: {
-          title: 'System constraints',
+          title: 'Backend baseline',
           kind: 'table',
+          eyebrow: 'SAPManage(action="features")',
           items: [
-            { label: 'ABAP release', value: '7.58', tone: 'neutral' },
-            { label: 'RAP', value: 'available', tone: 'good' },
-            { label: 'Service binding', value: 'available', tone: 'good' }
+            { label: 'ABAP release', value: '7.58 / S/4HANA 2023', tone: 'neutral' },
+            { label: 'RAP draft', value: 'available', tone: 'good' },
+            { label: 'Service binding', value: 'publishable', tone: 'good' },
+            { label: 'Known transport', value: 'A4HK903875 / A4HK905217', tone: 'neutral' }
           ]
         },
-        next: 'search'
+        next: 'search-service'
       },
-      search: {
-        id: 'search',
+      'search-service': {
+        id: 'search-service',
         type: 'tool',
         toolName: 'SAPSearch',
         callId: 'search-segw',
-        args: { query: 'ZDEMO_MIG_PROJECTS', searchType: 'object' },
-        summary: 'ARC-1 discovers the generated SEGW classes and project objects.',
+        args: { query: 'ZDEMO_MIG_PROJECTS', searchType: 'object', source: 'adt' },
+        summary: 'ARC-1 finds the SEGW service and generated classes without guessing class names.',
         resultFormat: 'table',
-        result: 'ZCL_ZDEMO_MIG_PROJECTS_MPC, ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT, ZDEMO_MIG_PROJECTS_SRV_0001.',
-        next: 'read-mpc'
-      },
-      'read-mpc': {
-        id: 'read-mpc',
-        type: 'tool',
-        toolName: 'SAPRead',
-        callId: 'read-mpc',
-        args: { type: 'CLAS', name: 'ZCL_ZDEMO_MIG_PROJECTS_MPC', method: 'DEFINE' },
-        summary: 'ARC-1 reads the legacy service model from MPC.',
-        resultFormat: 'text',
-        result: 'Entities: ProjectSet, TaskSet, TimeEntrySet. Associations: Project->Tasks, Task->TimeEntries.',
-        next: 'read-dpc'
-      },
-      'read-dpc': {
-        id: 'read-dpc',
-        type: 'tool',
-        toolName: 'SAPRead',
-        callId: 'read-dpc',
-        args: { type: 'CLAS', name: 'ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT', method: 'EXECUTE_ACTION' },
-        summary: 'ARC-1 reads the behavior that matters, not only the metadata.',
-        resultFormat: 'text',
-        result: 'Function import ApproveProject updates status and commits directly.',
+        result:
+          'ZDEMO_MIG_PROJECTS_SRV, ZCL_ZDEMO_MIG_PROJECTS_MPC, ZCL_ZDEMO_MIG_PROJECTS_MPC_EXT, ZCL_ZDEMO_MIG_PROJECTS_DPC, ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT.',
         panel: {
-          title: 'Extracted legacy contract',
-          kind: 'graph',
+          title: 'Discovered SEGW shell',
+          kind: 'table',
           items: [
-            { label: 'Project', value: 'Root entity with Tasks navigation', tone: 'neutral' },
-            { label: 'Task', value: 'Child entity with TimeEntries navigation', tone: 'neutral' },
-            { label: 'ApproveProject', value: 'Function import -> RAP action', tone: 'warn' }
+            { label: 'Model provider', value: 'ZCL_ZDEMO_MIG_PROJECTS_MPC', tone: 'good' },
+            { label: 'Data provider extension', value: 'ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT', tone: 'good' },
+            { label: 'Service path', value: '/sap/opu/odata/sap/ZDEMO_MIG_PROJECTS_SRV', tone: 'neutral' },
+            { label: 'Name gotcha', value: 'MPC class is not derived by trimming _SRV', tone: 'warn' }
           ]
         },
-        next: 'decision'
+        next: 'read-mpc-actions'
       },
-      decision: {
-        id: 'decision',
+      'read-mpc-actions': {
+        id: 'read-mpc-actions',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-mpc-actions',
+        args: { type: 'CLAS', name: 'ZCL_ZDEMO_MIG_PROJECTS_MPC', method: 'DEFINE_ACTIONS' },
+        summary: 'ARC-1 reads the function import from MPC and maps it to a RAP action candidate.',
+        resultFormat: 'text',
+        result:
+          'ApproveProject: POST function import, input ProjectId length 10, return entity Project, multiplicity 1.',
+        panel: {
+          title: 'Function import extraction',
+          kind: 'source',
+          eyebrow: 'ZCL_ZDEMO_MIG_PROJECTS_MPC->DEFINE_ACTIONS',
+          language: 'abap',
+          body: 'The generated MPC code exposes the business operation. ARC-1 keeps the action but changes the shape from a V2 function import to a bound RAP action.',
+          code:
+            "lo_action = model->create_action( 'ApproveProject' ).\n" +
+            "lo_action->set_return_entity_type( 'Project' ).\n" +
+            "lo_action->set_http_method( 'POST' ).\n" +
+            "lo_parameter = lo_action->create_input_parameter(\n" +
+            "  iv_parameter_name = 'ProjectId'\n" +
+            "  iv_abap_fieldname = 'PROJECT_ID' )."
+        },
+        next: 'read-mpc-associations'
+      },
+      'read-mpc-associations': {
+        id: 'read-mpc-associations',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-mpc-associations',
+        args: { type: 'CLAS', name: 'ZCL_ZDEMO_MIG_PROJECTS_MPC', method: 'DEFINE_ASSOCIATIONS' },
+        summary: 'ARC-1 extracts the entity graph and navigation properties from generated MPC code.',
+        resultFormat: 'graph',
+        result:
+          'ProjectSet -> Tasks -> TaskSet, TaskSet -> TimeEntries -> TimeEntrySet. Referential constraints ProjectId and TaskId.',
+        panel: {
+          title: 'Legacy OData V2 model',
+          kind: 'graph',
+          eyebrow: 'MPC associations',
+          body:
+            'The migration starts from the real V2 contract: Project is the root, Task is the child, and TimeEntry is the leaf. Navigation names become RAP compositions and redirected projection associations.',
+          items: [
+            { label: 'Root', value: 'ProjectSet / Project', tone: 'good' },
+            { label: 'Composition 1', value: 'Project -> Tasks', tone: 'good' },
+            { label: 'Composition 2', value: 'Task -> TimeEntries', tone: 'good' },
+            { label: 'Bound action target', value: 'Project.approve_project', tone: 'warn' }
+          ],
+          graph: {
+            nodes: [
+              { id: 'project', label: 'Project', kind: 'V2 entity', x: 18, y: 48, tone: 'good' },
+              { id: 'task', label: 'Task', kind: 'V2 entity', x: 50, y: 48, tone: 'good' },
+              { id: 'entry', label: 'TimeEntry', kind: 'V2 entity', x: 82, y: 48, tone: 'good' },
+              { id: 'action', label: 'ApproveProject', kind: 'function import', x: 18, y: 78, tone: 'warn' }
+            ],
+            edges: [
+              { from: 'project', to: 'task', label: 'Tasks' },
+              { from: 'task', to: 'entry', label: 'TimeEntries' },
+              { from: 'action', to: 'project', label: 'returns' }
+            ]
+          }
+        },
+        next: 'read-dpc-projects'
+      },
+      'read-dpc-projects': {
+        id: 'read-dpc-projects',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-dpc-projects',
+        args: { type: 'CLAS', name: 'ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT', method: 'PROJECTSET_GET_ENTITYSET' },
+        summary: 'ARC-1 reads DPC_EXT implementation to separate business behavior from legacy plumbing.',
+        resultFormat: 'text',
+        result:
+          'PROJECTSET_GET_ENTITYSET performs SELECT * FROM zdm_project INTO ls_project ... ENDSELECT and ignores filter, paging, and order parameters.',
+        panel: {
+          title: 'Legacy root read behavior',
+          kind: 'source',
+          eyebrow: 'ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT->PROJECTSET_GET_ENTITYSET',
+          language: 'abap',
+          body:
+            'This is the type of implementation a replay should show: there is real technical debt, but the business model is still recoverable.',
+          code:
+            'SELECT * FROM zdm_project INTO ls_project.\n' +
+            '  CLEAR ls_entity.\n' +
+            '  ls_entity-project_id = ls_project-project_id.\n' +
+            '  ls_entity-title = ls_project-title.\n' +
+            '  APPEND ls_entity TO et_entityset.\n' +
+            'ENDSELECT.'
+        },
+        next: 'read-dpc-navigation'
+      },
+      'read-dpc-navigation': {
+        id: 'read-dpc-navigation',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-dpc-navigation',
+        args: {
+          type: 'CLAS',
+          name: 'ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT',
+          grep: 'TASKSET_GET_ENTITYSET|TIMEENTRYSET_GET_ENTITYSET|it_key_tab|SELECT * FROM zdm_task|SELECT * FROM zdm_timeentry',
+          context: 2
+        },
+        summary: 'ARC-1 traces navigation behavior so the RAP composition model preserves the old UI routes.',
+        resultFormat: 'text',
+        result:
+          'TaskSet filters ProjectId from it_key_tab after reading ZDM_TASK. TimeEntrySet filters TaskId from it_key_tab while streaming ZDM_TIMEENTRY.',
+        panel: {
+          title: 'Navigation behavior to preserve',
+          kind: 'report',
+          items: [
+            { label: 'Legacy route', value: '/ProjectSet(...)/Tasks', tone: 'neutral' },
+            { label: 'Legacy route', value: '/TaskSet(...)/TimeEntries', tone: 'neutral' },
+            { label: 'Implementation issue', value: 'Reads broad tables, filters in ABAP', tone: 'warn' },
+            { label: 'RAP target', value: 'CDS compositions with redirected projections', tone: 'good' }
+          ]
+        },
+        next: 'read-dpc-action'
+      },
+      'read-dpc-action': {
+        id: 'read-dpc-action',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-dpc-action',
+        args: {
+          type: 'CLAS',
+          name: 'ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT',
+          method: '/IWBEP/IF_MGW_APPL_SRV_RUNTIME~EXECUTE_ACTION'
+        },
+        summary: 'ARC-1 reads the mutation path before proposing RAP behavior logic.',
+        resultFormat: 'text',
+        result:
+          'ApproveProject sets ZDM_PROJECT-STATUS to A, updates AEDAT/AEZET/AENAM, commits directly, then returns the updated project row.',
+        panel: {
+          title: 'Legacy action implementation',
+          kind: 'source',
+          eyebrow: 'DPC_EXT execute_action',
+          language: 'abap',
+          body:
+            'The RAP replacement needs to keep the visible behavior while removing the direct COMMIT WORK and fitting the managed draft behavior pool.',
+          code:
+            "IF iv_action_name = 'ApproveProject'.\n" +
+            '  UPDATE zdm_project\n' +
+            "    SET status = 'A'\n" +
+            '        aedat  = sy-datum\n' +
+            '        aezet  = sy-uzeit\n' +
+            '        aenam  = sy-uname\n' +
+            '    WHERE project_id = lv_project.\n' +
+            '  COMMIT WORK.\n' +
+            'ENDIF.'
+        },
+        next: 'ui5-scan'
+      },
+      'ui5-scan': {
+        id: 'ui5-scan',
+        type: 'panel',
+        panel: {
+          title: 'Legacy UI5 dependency scan',
+          kind: 'source',
+          eyebrow: 'legacy-ui5-app/webapp/controller/Detail.controller.js',
+          language: 'javascript',
+          body:
+            'The frontend confirms which V2 shapes must keep working conceptually: the detail page expands Tasks, opens TimeEntries relative to the selected task, and calls the ApproveProject function import.',
+          code:
+            'this.getView().bindElement({\n' +
+            '  path: "/ProjectSet(\\\'" + sProjectId + "\\\')",\n' +
+            '  parameters: { expand: "Tasks" }\n' +
+            '});\n\n' +
+            'oModel.callFunction("/ApproveProject", {\n' +
+            '  method: "POST",\n' +
+            '  urlParameters: { ProjectId: sProjectId }\n' +
+            '});'
+        },
+        next: 'approval-gate'
+      },
+      'approval-gate': {
+        id: 'approval-gate',
         type: 'decision',
-        prompt: 'The replay reached the human approval gate.',
+        prompt: 'ARC-1 has enough service, behavior, and UI context. What should the replay open before writes?',
         options: [
           {
             id: 'plan',
-            label: 'Show RAP plan',
-            description: 'Continue to the generated artifact plan without applying writes.',
+            label: 'Open RAP build plan',
+            description: 'Show the generated target object set and dependency order.',
             recommended: true,
-            next: 'plan'
+            next: 'rap-plan'
           },
           {
-            id: 'writes',
-            label: 'Simulate writes',
-            description: 'Show what ARC-1 would create after approval.',
-            next: 'writes'
+            id: 'pitfalls',
+            label: 'Open run pitfalls',
+            description: 'Show concrete issues from the migration run notes before continuing.',
+            next: 'pitfalls'
           }
         ]
       },
-      plan: {
-        id: 'plan',
+      pitfalls: {
+        id: 'pitfalls',
         type: 'panel',
         panel: {
-          title: 'RAP artifact plan',
-          kind: 'table',
+          title: 'Run notes that make the replay believable',
+          kind: 'report',
+          body:
+            'The migration sample includes accumulated run learnings. These are useful in the replay because they explain why ARC-1 validates names, write order, draft syntax, and service publication state.',
           items: [
-            { label: 'ZI_DM_PROJECT / ZC_DM_PROJECT', value: 'interface + projection CDS', tone: 'good' },
-            { label: 'ZI_DM_PROJECT BDEF', value: 'managed draft behavior', tone: 'good' },
-            { label: 'approve_project', value: 'bound RAP action replacing function import', tone: 'good' },
-            { label: 'ZUI_DM_PROJECTS_O4', value: 'OData V4 service binding', tone: 'good' }
+            { label: 'Class discovery', value: 'Use the actual MPC class, not a trimmed service name', tone: 'warn' },
+            { label: 'Naming', value: 'Do not mix old ZR_* stubs with final ZI_* / ZC_* objects', tone: 'warn' },
+            { label: 'Draft', value: 'Use "%admin" include and remove computed timestamps from persistent mapping', tone: 'warn' },
+            { label: 'Projection', value: 'Redirect child compositions and one to-parent association on the leaf', tone: 'warn' },
+            { label: 'OData V4 action', value: 'Composite keys include IsActiveEntity and bound actions need If-Match', tone: 'warn' },
+            { label: 'SRVB cleanup', value: 'Published bindings need unpublish before delete', tone: 'warn' }
           ]
         },
-        next: 'done'
+        next: 'rap-plan'
       },
-      writes: {
-        id: 'writes',
+      'rap-plan': {
+        id: 'rap-plan',
+        type: 'panel',
+        panel: {
+          title: 'Generated RAP object plan',
+          kind: 'table',
+          body:
+            'The plan keeps the existing ZDM_* tables, rebuilds the contract as RAP, and maps the V2 function import to a managed RAP action.',
+          items: [
+            { label: 'Interface CDS', value: 'ZI_DM_PROJECT, ZI_DM_TASK, ZI_DM_TIMEENTRY', tone: 'good' },
+            { label: 'Projection CDS', value: 'ZC_DM_PROJECT, ZC_DM_TASK, ZC_DM_TIMEENTRY', tone: 'good' },
+            { label: 'Behavior', value: 'Managed draft BDEF on ZI_DM_PROJECT plus projection BDEF', tone: 'good' },
+            { label: 'Action', value: 'approve_project result [1] $self', tone: 'good' },
+            { label: 'Annotations', value: 'ZME_DM_PROJECT, ZME_DM_TASK, ZME_DM_TIMEENTRY', tone: 'good' },
+            { label: 'Service', value: 'ZUI_DM_PROJECTS + ZUI_DM_PROJECTS_O4', tone: 'good' },
+            { label: 'Behavior pool', value: 'ZBP_DM_PROJECT with lhc_project implementation', tone: 'good' }
+          ]
+        },
+        next: 'write-decision'
+      },
+      'write-decision': {
+        id: 'write-decision',
+        type: 'decision',
+        prompt: 'After approval in a real session, ARC-1 writes the objects in dependency order.',
+        options: [
+          {
+            id: 'backend',
+            label: 'Replay backend writes',
+            description: 'Show create, activate, publish, and validation steps.',
+            recommended: true,
+            next: 'batch-create'
+          },
+          {
+            id: 'graph',
+            label: 'Skip to RAP graph',
+            description: 'Jump to the generated object graph and UI comparison.',
+            next: 'rap-graph'
+          }
+        ]
+      },
+      'batch-create': {
+        id: 'batch-create',
         type: 'tool',
         toolName: 'SAPWrite',
         callId: 'batch-create-rap',
-        args: { action: 'batch_create', package: 'ZDEMO_MIG_RAP', activateAtEnd: true, objectCount: 14 },
-        summary: 'After approval, ARC-1 can batch-create interdependent RAP artifacts and activate at the end.',
+        args: {
+          action: 'batch_create',
+          package: 'ZDEMO_MIG_DM',
+          transport: 'A4HK905217',
+          activateAtEnd: true,
+          objectCount: 17
+        },
+        summary: 'ARC-1 creates the interdependent RAP stack in one dependency-aware batch and defers activation.',
         resultFormat: 'text',
-        result: 'Created 14 objects. Activation deferred until the complete RAP stack exists.',
-        next: 'activate'
+        result:
+          'Created DDLS ZI_DM_PROJECT, ZI_DM_TASK, ZI_DM_TIMEENTRY, ZC_DM_PROJECT, ZC_DM_TASK, ZC_DM_TIMEENTRY; BDEFs; DDLX metadata extensions; SRVD; SRVB; behavior pool includes.',
+        panel: {
+          title: 'Write sequence',
+          kind: 'terminal',
+          body:
+            'The replay shows why a migration demo needs more than a generated class. The useful part is the dependency order across CDS, behavior, metadata, service definition, service binding, and behavior pool includes.',
+          items: [
+            { label: 'Step 1', value: 'Create interface CDS roots and children', tone: 'good' },
+            { label: 'Step 2', value: 'Create projection CDS with redirected associations', tone: 'good' },
+            { label: 'Step 3', value: 'Create BDEFs and behavior implementation stubs', tone: 'good' },
+            { label: 'Step 4', value: 'Create metadata extensions and service artifacts', tone: 'good' }
+          ]
+        },
+        next: 'activate-core'
       },
-      activate: {
-        id: 'activate',
+      'activate-core': {
+        id: 'activate-core',
         type: 'tool',
         toolName: 'SAPActivate',
-        callId: 'activate-rap',
-        args: { objects: ['ZI_DM_PROJECT', 'ZC_DM_PROJECT', 'ZUI_DM_PROJECTS', 'ZUI_DM_PROJECTS_O4'] },
-        summary: 'The generated stack is activated together so CDS and behavior dependencies resolve.',
+        callId: 'activate-rap-stack',
+        args: {
+          objects: [
+            'ZI_DM_PROJECT',
+            'ZI_DM_TASK',
+            'ZI_DM_TIMEENTRY',
+            'ZC_DM_PROJECT',
+            'ZC_DM_TASK',
+            'ZC_DM_TIMEENTRY',
+            'ZI_DM_PROJECT BDEF',
+            'ZC_DM_PROJECT BDEF'
+          ]
+        },
+        summary: 'ARC-1 activates the stack together so CDS, projection, and behavior dependencies resolve.',
         resultFormat: 'json',
-        result: '{"status":"ok","activated":14}',
+        result: '{"status":"ok","activated":17,"warnings":["ED064 fallback was not required in this run"]}',
+        panel: {
+          title: 'Activation gate',
+          kind: 'table',
+          items: [
+            { label: 'CDS stack', value: 'Activated', tone: 'good' },
+            { label: 'Behavior definitions', value: 'Activated', tone: 'good' },
+            { label: 'Metadata extensions', value: 'Activated', tone: 'good' },
+            { label: 'Warnings', value: 'No blocking syntax errors', tone: 'good' }
+          ]
+        },
+        next: 'publish'
+      },
+      publish: {
+        id: 'publish',
+        type: 'tool',
+        toolName: 'SAPActivate',
+        callId: 'publish-rap-service',
+        args: { action: 'publish_srvb', name: 'ZUI_DM_PROJECTS_O4' },
+        summary: 'ARC-1 publishes the OData V4 service binding after the underlying RAP objects are active.',
+        resultFormat: 'json',
+        result:
+          '{"name":"ZUI_DM_PROJECTS_O4","bindingType":"ODATA V4 - UI","published":true,"path":"/sap/opu/odata4/sap/zui_dm_projects_o4/srvd/sap/zui_dm_projects_o4/0001/"}',
+        panel: {
+          title: 'Published service binding',
+          kind: 'transport',
+          items: [
+            { label: 'Service definition', value: 'ZUI_DM_PROJECTS', tone: 'good' },
+            { label: 'Service binding', value: 'ZUI_DM_PROJECTS_O4', tone: 'good' },
+            { label: 'Protocol', value: 'OData V4 - UI', tone: 'good' },
+            { label: 'State', value: 'Published', tone: 'good' }
+          ]
+        },
+        next: 'diagnose'
+      },
+      diagnose: {
+        id: 'diagnose',
+        type: 'tool',
+        toolName: 'SAPDiagnose',
+        callId: 'validate-generated-stack',
+        args: {
+          action: 'object_state',
+          objects: ['ZUI_DM_PROJECTS_O4', 'ZI_DM_PROJECT', 'ZC_DM_PROJECT', 'ZBP_DM_PROJECT']
+        },
+        summary: 'ARC-1 validates source state and activation state before showing the generated code.',
+        resultFormat: 'table',
+        result:
+          'ZUI_DM_PROJECTS_O4 published, ZI_DM_PROJECT active, ZC_DM_PROJECT active, ZBP_DM_PROJECT active, no inactive drafts in package ZDEMO_MIG_DM.',
+        next: 'read-rap-root'
+      },
+      'read-rap-root': {
+        id: 'read-rap-root',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-generated-root-cds',
+        args: { type: 'DDLS', name: 'ZI_DM_PROJECT' },
+        summary: 'ARC-1 re-reads the generated root interface view to show the actual composition model.',
+        resultFormat: 'text',
+        result:
+          'ZI_DM_PROJECT is a root view entity over ZDM_PROJECT with composition [0..*] of ZI_DM_TASK as _Tasks and computed timestamps.',
+        panel: {
+          title: 'Generated root interface CDS',
+          kind: 'source',
+          eyebrow: 'ZI_DM_PROJECT',
+          language: 'abap',
+          code:
+            'define root view entity ZI_DM_PROJECT\n' +
+            '  as select from zdm_project\n' +
+            '  composition [0..*] of ZI_DM_TASK as _Tasks\n' +
+            '{\n' +
+            '  key project_id as ProjectId,\n' +
+            '  title as Title,\n' +
+            '  description as Description,\n' +
+            '  status as Status,\n' +
+            '  start_date as StartDate,\n' +
+            '  end_date as EndDate,\n' +
+            '  _Tasks\n' +
+            '}'
+        },
+        next: 'read-rap-bdef'
+      },
+      'read-rap-bdef': {
+        id: 'read-rap-bdef',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-generated-behavior',
+        args: { type: 'BDEF', name: 'ZI_DM_PROJECT' },
+        summary: 'ARC-1 re-reads the behavior definition to show draft, lock, mapping, compositions, and the action.',
+        resultFormat: 'text',
+        result:
+          'Managed draft BDEF with persistent tables zdm_project/zdm_task/zdm_timeentry, draft tables, _Tasks create, _TimeEntries create, and action approve_project result [1] $self.',
+        panel: {
+          title: 'Generated managed draft behavior',
+          kind: 'source',
+          eyebrow: 'ZI_DM_PROJECT behavior definition',
+          language: 'abap',
+          code:
+            'managed implementation in class zbp_dm_project unique;\n' +
+            'strict ( 2 );\n' +
+            'with draft;\n\n' +
+            'define behavior for ZI_DM_PROJECT alias Project\n' +
+            '  persistent table zdm_project\n' +
+            '  draft table zdm_project_d\n' +
+            '  lock master\n' +
+            '  authorization master ( instance )\n' +
+            '{\n' +
+            '  create; update; delete;\n' +
+            '  association _Tasks { create; with draft; }\n' +
+            '  draft action Edit;\n' +
+            '  draft action Activate;\n' +
+            '  action approve_project result [1] $self;\n' +
+            '}'
+        },
+        next: 'read-action-impl'
+      },
+      'read-action-impl': {
+        id: 'read-action-impl',
+        type: 'tool',
+        toolName: 'SAPRead',
+        callId: 'read-approve-project-impl',
+        args: {
+          type: 'CLAS',
+          name: 'ZBP_DM_PROJECT',
+          include: 'locals_imp',
+          method: 'LHC_PROJECT~APPROVE_PROJECT'
+        },
+        summary: 'ARC-1 shows the generated action logic that replaces direct UPDATE and COMMIT WORK.',
+        resultFormat: 'text',
+        result:
+          'approve_project uses READ ENTITIES and MODIFY ENTITIES in local mode, updates Status and audit fields, then returns the modified Project entity.',
+        panel: {
+          title: 'Generated RAP action implementation',
+          kind: 'source',
+          eyebrow: 'ZBP_DM_PROJECT locals_imp',
+          language: 'abap',
+          code:
+            'READ ENTITIES OF zi_dm_project IN LOCAL MODE\n' +
+            '  ENTITY Project\n' +
+            '  FIELDS ( ProjectId Status )\n' +
+            '  WITH CORRESPONDING #( keys )\n' +
+            '  RESULT DATA(projects).\n\n' +
+            'MODIFY ENTITIES OF zi_dm_project IN LOCAL MODE\n' +
+            '  ENTITY Project\n' +
+            '  UPDATE FIELDS ( Status Aedat Aezet Aenam )\n' +
+            "  WITH VALUE #( FOR project IN projects ( %tky = project-%tky Status = 'A' ) )."
+        },
+        next: 'rap-graph'
+      },
+      'rap-graph': {
+        id: 'rap-graph',
+        type: 'panel',
+        panel: {
+          title: 'RAP replacement graph',
+          kind: 'graph',
+          body:
+            'This is the part the replay should showcase: ARC-1 is not just returning one class. It connects legacy service metadata, DPC behavior, tables, RAP CDS, behavior, service binding, and the UI migration surface.',
+          items: [
+            { label: 'Preserved model', value: 'Project -> Task -> TimeEntry', tone: 'good' },
+            { label: 'Preserved action', value: 'ApproveProject -> approve_project', tone: 'good' },
+            { label: 'Published endpoint', value: 'ZUI_DM_PROJECTS_O4 OData V4', tone: 'good' },
+            { label: 'Next client step', value: 'Fiori Elements or modern UI5 TypeScript', tone: 'neutral' }
+          ],
+          graph: {
+            nodes: [
+              { id: 'segw', label: 'SEGW V2', kind: 'legacy service', x: 12, y: 18, tone: 'warn' },
+              { id: 'dpc', label: 'DPC_EXT', kind: 'behavior source', x: 12, y: 54, tone: 'warn' },
+              { id: 'tables', label: 'ZDM_*', kind: 'tables', x: 34, y: 36, tone: 'neutral' },
+              { id: 'zi', label: 'ZI_DM_*', kind: 'interface CDS', x: 55, y: 22, tone: 'good' },
+              { id: 'zc', label: 'ZC_DM_*', kind: 'projection CDS', x: 74, y: 22, tone: 'good' },
+              { id: 'bdef', label: 'BDEF', kind: 'managed draft', x: 56, y: 58, tone: 'good' },
+              { id: 'impl', label: 'ZBP_DM_PROJECT', kind: 'action logic', x: 76, y: 58, tone: 'good' },
+              { id: 'srv', label: 'OData V4', kind: 'SRVD/SRVB', x: 90, y: 39, tone: 'good' },
+              { id: 'ui', label: 'UI5 / FE', kind: 'client', x: 90, y: 75, tone: 'neutral' }
+            ],
+            edges: [
+              { from: 'segw', to: 'tables', label: 'metadata' },
+              { from: 'dpc', to: 'tables', label: 'reads/writes' },
+              { from: 'tables', to: 'zi', label: 'selects' },
+              { from: 'zi', to: 'zc', label: 'projects' },
+              { from: 'zi', to: 'bdef', label: 'behavior' },
+              { from: 'bdef', to: 'impl', label: 'action' },
+              { from: 'zc', to: 'srv', label: 'expose' },
+              { from: 'srv', to: 'ui', label: 'consume' }
+            ]
+          }
+        },
+        next: 'ui-decision'
+      },
+      'ui-decision': {
+        id: 'ui-decision',
+        type: 'decision',
+        prompt: 'Show the client follow-up too?',
+        options: [
+          {
+            id: 'ui',
+            label: 'Show UI migration',
+            description: 'Compare the old V2 freestyle call with the generated OData V4 client shape.',
+            recommended: true,
+            next: 'ui-comparison'
+          },
+          {
+            id: 'finish',
+            label: 'Finish backend replay',
+            description: 'End after the published RAP graph.',
+            next: 'done'
+          }
+        ]
+      },
+      'ui-comparison': {
+        id: 'ui-comparison',
+        type: 'panel',
+        panel: {
+          title: 'Client follow-up',
+          kind: 'diff',
+          eyebrow: 'legacy UI5 -> modern UI5 / Fiori Elements',
+          body:
+            'The sample repo contains both a legacy freestyle app and a modern TypeScript app. The replay can branch to either Fiori Elements or modern UI5 after the backend migration.',
+          code:
+            '- oModel.callFunction("/ApproveProject", { method: "POST", urlParameters: { ProjectId: sProjectId } });\n' +
+            '+ const operation = model.bindContext("com.sap.gateway.srvd.zui_dm_projects.v0001.approve_project()", ctx);\n' +
+            '+ await operation.invoke("$auto");\n\n' +
+            '- /sap/opu/odata/sap/ZDEMO_MIG_PROJECTS_SRV\n' +
+            '+ /sap/opu/odata4/sap/zui_dm_projects_o4/srvd/sap/zui_dm_projects_o4/0001/'
+        },
         next: 'done'
       },
       done: {
@@ -1103,7 +1576,7 @@ export const scenarios: Scenario[] = [
         type: 'message',
         role: 'assistant',
         text:
-          'The important part is the workflow shape: discover the real legacy contract, stop for approval, then create and validate the RAP replacement in a controlled sequence.'
+          'This SEGW migration replay is now a complete sample: it shows discovery from the generated MPC/DPC classes, preserves the Project/Task/TimeEntry graph, turns the V2 function import into RAP behavior, publishes the OData V4 binding, and shows the downstream UI impact.'
       }
     }
   },

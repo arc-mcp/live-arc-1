@@ -80,6 +80,23 @@ interface ReplayState {
   speed: Speed;
 }
 
+interface VscodeWorkspaceEntry {
+  label: string;
+  depth?: 0 | 1 | 2;
+  active?: boolean;
+}
+
+interface VscodeWorkspace {
+  root: string;
+  commandCenter: string;
+  entries: VscodeWorkspaceEntry[];
+  tabs: Array<{
+    label: string;
+    active?: boolean;
+  }>;
+  variant?: 'migration';
+}
+
 const initialState = (scenario: Scenario): ReplayState => ({
   events: [],
   currentNodeId: scenario.startNodeId,
@@ -372,13 +389,22 @@ function toAssistantMessages(scenario: Scenario, events: VisibleEvent[]): Thread
 
 function ShellFrame({ children, scenario }: { children: React.ReactNode; scenario: Scenario }) {
   if (scenario.theme === 'vscode') {
+    const workspace = getVscodeWorkspace(scenario);
+
     return (
-      <div className="client-shell vscode-shell">
+      <div
+        className={[
+          'client-shell vscode-shell',
+          workspace.variant ? `vscode-shell-${workspace.variant}` : ''
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <div className="vscode-titlebar" aria-hidden="true">
           <span className="vscode-menu">File</span>
           <span>Edit</span>
           <span>View</span>
-          <div className="vscode-command-center">arc-1 replay workspace</div>
+          <div className="vscode-command-center">{workspace.commandCenter}</div>
           <span className="vscode-window-dot" />
           <span className="vscode-window-dot" />
           <span className="vscode-window-dot" />
@@ -391,16 +417,23 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
           <span className="codicon codicon-extensions" />
         </div>
         <div className="vscode-explorer">
-          <strong>ARC-1 Replay</strong>
-          <span>src/abap</span>
-          <span>transport</span>
-          <span>diagnostics</span>
+          <strong>{workspace.root}</strong>
+          {workspace.entries.map((entry) => (
+            <span
+              className={`depth-${entry.depth ?? 0}${entry.active ? ' entry-active' : ''}`}
+              key={`${entry.depth ?? 0}-${entry.label}`}
+            >
+              {entry.label}
+            </span>
+          ))}
         </div>
         <div className="vscode-workarea">
           <div className="vscode-tabs" aria-hidden="true">
-            <span className="active">ARC-1 Chat</span>
-            <span>tool-calls.json</span>
-            <span>evidence.md</span>
+            {workspace.tabs.map((tab) => (
+              <span className={tab.active ? 'active' : ''} key={tab.label}>
+                {tab.label}
+              </span>
+            ))}
           </div>
           <div className="client-main">{children}</div>
         </div>
@@ -511,6 +544,49 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
       <div className="client-main">{children}</div>
     </div>
   );
+}
+
+function getVscodeWorkspace(scenario: Scenario): VscodeWorkspace {
+  if (scenario.id === 'segw-to-rap-guided') {
+    return {
+      root: 'arc-1-legacy-ui5-rap-conversion',
+      commandCenter: 'migrate-segw-to-rap replay',
+      variant: 'migration',
+      entries: [
+        { label: 'README.md' },
+        { label: 'skills/' },
+        { label: 'migrate-segw-to-rap.md', depth: 1, active: true },
+        { label: 'convert-ui5-to-fiori-elements.md', depth: 1 },
+        { label: 'ABAP_SRC/src/' },
+        { label: 'zcl_zdemo_mig_projects_mpc.clas.abap', depth: 1 },
+        { label: 'zcl_zdemo_mig_projects_dpc_ext.clas.abap', depth: 1 },
+        { label: 'dm/', depth: 1 },
+        { label: 'zi_dm_project.ddls.asddls', depth: 2, active: true },
+        { label: 'zi_dm_task.ddls.asddls', depth: 2 },
+        { label: 'zi_dm_timeentry.ddls.asddls', depth: 2 },
+        { label: 'zi_dm_project.bdef.asbdef', depth: 2 },
+        { label: 'zbp_dm_project.clas.locals_imp.abap', depth: 2 },
+        { label: 'zui_dm_projects.srvd.srvdsrv', depth: 2 },
+        { label: 'legacy-ui5-app/webapp/' },
+        { label: 'controller/Detail.controller.js', depth: 1 },
+        { label: 'modern-ui5-ts-app/webapp/' },
+        { label: 'controller/Detail.controller.ts', depth: 1 }
+      ],
+      tabs: [
+        { label: 'migrate-segw-to-rap.md', active: true },
+        { label: 'DPC_EXT.abap' },
+        { label: 'ZI_DM_PROJECT.bdef' },
+        { label: 'Detail.controller.ts' }
+      ]
+    };
+  }
+
+  return {
+    root: 'ARC-1 Replay',
+    commandCenter: 'arc-1 replay workspace',
+    entries: [{ label: 'src/abap' }, { label: 'transport' }, { label: 'diagnostics' }],
+    tabs: [{ label: 'ARC-1 Chat', active: true }, { label: 'tool-calls.json' }, { label: 'evidence.md' }]
+  };
 }
 
 function Transcript({ events, scenario }: { events: VisibleEvent[]; scenario: Scenario }) {

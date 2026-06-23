@@ -265,6 +265,10 @@ button {
   grid-template-rows: 34px minmax(0, 1fr);
 }
 
+.vscode-shell-migration {
+  grid-template-columns: 48px 260px minmax(0, 1fr);
+}
+
 .vscode-titlebar {
   align-items: center;
   background: #3c3c3c;
@@ -320,14 +324,33 @@ button {
   color: #c7c7c7;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 7px;
   grid-area: explorer;
-  padding: 16px 12px;
+  padding: 14px 10px;
 }
 
 .vscode-explorer span {
   color: #aeb6c2;
+  display: block;
   font-size: 13px;
+  overflow: hidden;
+  padding: 3px 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vscode-explorer .depth-1 {
+  padding-left: 15px;
+}
+
+.vscode-explorer .depth-2 {
+  padding-left: 29px;
+}
+
+.vscode-explorer .entry-active {
+  background: #37373d;
+  border-radius: 4px;
+  color: #ffffff;
 }
 
 .vscode-workarea {
