@@ -242,16 +242,6 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
             </span>
           </Link>
           <div className="topbar-actions">
-            <button
-              aria-controls="scenario-sidebar"
-              aria-expanded={scenariosOpen}
-              className="topbar-toggle"
-              onClick={() => setScenariosOpen((open) => !open)}
-              type="button"
-            >
-              {scenariosOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
-              {scenariosOpen ? 'Hide scenarios' : 'Show scenarios'}
-            </button>
             <span className="status-pill">Replay only</span>
             <span className="status-pill">{labelForTheme(scenario.theme)}</span>
           </div>
@@ -259,8 +249,20 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
 
         <aside className="scenario-sidebar" id="scenario-sidebar" aria-label="Available scenarios">
           <div className="sidebar-heading">
-            <span>Scenarios</span>
-            <small>Jump in directly</small>
+            <div className="sidebar-title">
+              <span>Scenarios</span>
+              <small>Jump in directly</small>
+            </div>
+            <button
+              aria-controls="scenario-sidebar"
+              aria-expanded={scenariosOpen}
+              className="scenario-toggle"
+              onClick={() => setScenariosOpen(false)}
+              type="button"
+            >
+              <PanelLeftClose size={16} />
+              <span>Hide</span>
+            </button>
           </div>
           <div className="scenario-groups">
             {groupedScenarios.map((group) => (
@@ -297,6 +299,23 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
             ))}
           </div>
         </aside>
+
+        {!scenariosOpen ? (
+          <div className="scenario-restore-slot">
+            <button
+              aria-controls="scenario-sidebar"
+              aria-expanded={scenariosOpen}
+              aria-label="Show scenarios"
+              className="scenario-toggle scenario-restore"
+              onClick={() => setScenariosOpen(true)}
+              title="Show scenarios"
+              type="button"
+            >
+              <PanelLeftOpen size={16} />
+              <span>Show scenarios</span>
+            </button>
+          </div>
+        ) : null}
 
         <section className="replay-stage">
           <ShellFrame scenario={scenario}>

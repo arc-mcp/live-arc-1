@@ -47,9 +47,9 @@ button {
 
 .workbench.scenarios-collapsed {
   grid-template-areas:
-    "top top"
-    "replay evidence";
-  grid-template-columns: minmax(640px, 1fr) 420px;
+    "top top top"
+    "scenario-toggle replay evidence";
+  grid-template-columns: 56px minmax(640px, 1fr) 420px;
 }
 
 .workbench.scenarios-collapsed .scenario-sidebar {
@@ -102,7 +102,7 @@ button {
   gap: 8px;
 }
 
-.topbar-toggle {
+.scenario-toggle {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -113,6 +113,11 @@ button {
   gap: 7px;
   min-height: 32px;
   padding: 0 12px;
+}
+
+.scenario-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .status-pill {
@@ -138,14 +143,42 @@ button {
 }
 
 .sidebar-heading {
-  align-items: flex-end;
+  align-items: center;
   display: flex;
+  gap: 12px;
   justify-content: space-between;
 }
 
-.sidebar-heading span {
+.sidebar-title {
+  min-width: 0;
+}
+
+.sidebar-title span {
   font-size: 20px;
   font-weight: 760;
+}
+
+.sidebar-heading .scenario-toggle {
+  flex: 0 0 auto;
+  padding: 0 10px;
+}
+
+.scenario-restore-slot {
+  background: #fff;
+  border-right: 1px solid var(--border);
+  grid-area: scenario-toggle;
+  min-width: 0;
+  padding: 18px 8px;
+}
+
+.scenario-restore {
+  justify-content: center;
+  padding: 0;
+  width: 38px;
+}
+
+.scenario-restore span {
+  display: none;
 }
 
 .scenario-groups {
@@ -1326,6 +1359,7 @@ button {
 
 .theme-claude .topbar,
 .theme-claude .scenario-sidebar,
+.theme-claude .scenario-restore-slot,
 .theme-claude .evidence-panel {
   background: #fffaf3;
 }
@@ -1358,10 +1392,26 @@ button {
   .workbench.scenarios-collapsed {
     grid-template-areas:
       "top"
+      "scenario-toggle"
       "replay"
       "evidence";
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 64px minmax(760px, auto) auto;
+    grid-template-rows: 64px auto minmax(760px, auto) auto;
+  }
+
+  .scenario-restore-slot {
+    border-bottom: 1px solid var(--border);
+    border-right: 0;
+    padding: 10px 12px;
+  }
+
+  .scenario-restore {
+    padding: 0 10px;
+    width: auto;
+  }
+
+  .scenario-restore span {
+    display: inline;
   }
 
   .evidence-panel {
@@ -1383,10 +1433,6 @@ button {
     position: sticky;
     top: 0;
     z-index: 40;
-  }
-
-  .topbar-toggle {
-    padding: 0 10px;
   }
 
   .topbar-actions .status-pill {
@@ -1573,7 +1619,7 @@ button {
     display: flex;
   }
 
-  .topbar-toggle {
+  .scenario-toggle {
     font-size: 13px;
     min-height: 30px;
     padding: 0 9px;
