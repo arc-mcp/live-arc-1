@@ -1,0 +1,167 @@
+{
+  "id": "developer-method-surgery",
+  "title": "Method-level surgery with checks",
+  "shortTitle": "Edit method",
+  "subtitle": "VS Code replay showing a focused method edit, diff, syntax check, and ABAP Unit.",
+  "theme": "vscode",
+  "group": "Build & Test",
+  "audience": "developer",
+  "estimatedMinutes": 2,
+  "tags": [
+    "VS Code",
+    "SAPWrite",
+    "Diff",
+    "ABAP Unit"
+  ],
+  "outcome": "A proposed method patch with validation gates shown before simulated apply.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Update get_name in ZCL_CUSTOMER to return first_name and last_name instead of only name.",
+      "next": "read-method"
+    },
+    "read-method": {
+      "id": "read-method",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-get-name",
+      "args": {
+        "type": "CLAS",
+        "name": "ZCL_CUSTOMER",
+        "method": "GET_NAME"
+      },
+      "summary": "ARC-1 reads only the target method body.",
+      "resultFormat": "text",
+      "result": "METHOD get_name.\n  rv_name = me->name.\nENDMETHOD.",
+      "panel": {
+        "title": "Current method",
+        "kind": "source",
+        "language": "abap",
+        "code": "METHOD get_name.\n  rv_name = me->name.\nENDMETHOD."
+      },
+      "next": "write"
+    },
+    "write": {
+      "id": "write",
+      "type": "tool",
+      "toolName": "SAPWrite",
+      "callId": "edit-get-name",
+      "args": {
+        "action": "edit_method",
+        "type": "CLAS",
+        "name": "ZCL_CUSTOMER",
+        "method": "GET_NAME",
+        "source": "rv_name = |{ me->first_name } { me->last_name }|."
+      },
+      "summary": "ARC-1 uses method-level surgery instead of replacing the full class source.",
+      "resultFormat": "diff",
+      "result": "-  rv_name = me->name.\n+  rv_name = |{ me->first_name } { me->last_name }|.",
+      "panel": {
+        "title": "Proposed method diff",
+        "kind": "diff",
+        "language": "diff",
+        "code": " METHOD get_name.\n-  rv_name = me->name.\n+  rv_name = |{ me->first_name } { me->last_name }|.\n ENDMETHOD."
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "Where should the replay go from the proposed diff?",
+      "options": [
+        {
+          "id": "checks",
+          "label": "Run checks",
+          "description": "Show syntax and ABAP Unit gates after the simulated patch.",
+          "recommended": true,
+          "next": "syntax"
+        },
+        {
+          "id": "stop",
+          "label": "Stop at proposal",
+          "description": "Show the human-review stopping point.",
+          "next": "proposal"
+        }
+      ]
+    },
+    "syntax": {
+      "id": "syntax",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "syntax-customer",
+      "args": {
+        "action": "syntax",
+        "type": "CLAS",
+        "name": "ZCL_CUSTOMER"
+      },
+      "summary": "Syntax check passes after the simulated method update.",
+      "resultFormat": "json",
+      "result": "{\"status\":\"ok\",\"messages\":[]}",
+      "panel": {
+        "title": "Syntax check",
+        "kind": "terminal",
+        "body": "SAPDiagnose returned no syntax messages.",
+        "items": [
+          {
+            "label": "Status",
+            "value": "ok",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "unit"
+    },
+    "unit": {
+      "id": "unit",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "unit-customer",
+      "args": {
+        "action": "unittest",
+        "type": "CLAS",
+        "name": "ZCL_CUSTOMER"
+      },
+      "summary": "ABAP Unit verifies the expected name formatting behavior.",
+      "resultFormat": "json",
+      "result": "{\"passed\":4,\"failed\":0,\"errors\":0}",
+      "panel": {
+        "title": "ABAP Unit",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Passed",
+            "value": "4",
+            "tone": "good"
+          },
+          {
+            "label": "Failed",
+            "value": "0",
+            "tone": "good"
+          },
+          {
+            "label": "Errors",
+            "value": "0",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "proposal": {
+      "id": "proposal",
+      "type": "message",
+      "role": "assistant",
+      "text": "Stopping at the diff is a valid setup for a public demo or read-only rollout. The developer keeps the review gate and applies the patch manually.",
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "The value is the narrow edit surface: one method, one diff, then SAP-side checks."
+    }
+  }
+}

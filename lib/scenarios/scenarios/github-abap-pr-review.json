@@ -1,0 +1,271 @@
+{
+  "id": "github-abap-pr-review",
+  "title": "Claude reviews an ABAP pull request with SAP context",
+  "shortTitle": "PR review",
+  "subtitle": "Claude/GitHub replay based on the ABAP CI/CD sample: activated source, syntax, ABAP Unit, ATC, and review evidence.",
+  "theme": "claude",
+  "group": "Build & Test",
+  "audience": "developer",
+  "estimatedMinutes": 4,
+  "tags": [
+    "Claude",
+    "GitHub",
+    "ABAP Unit",
+    "ATC"
+  ],
+  "outcome": "A PR review that cites live SAP evidence instead of only reading the Git diff.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Review PR #20 in the ABAP CI/CD sample. The diff touches ZCL_ARC1_TEST_HELPERS and ZCL_ARC1_TASK_SERVICE. Use ARC-1 read-only context from SAP before commenting.",
+      "next": "pr"
+    },
+    "pr": {
+      "id": "pr",
+      "type": "panel",
+      "panel": {
+        "title": "GitHub pull request",
+        "kind": "document",
+        "eyebrow": "arc-1-abap-cicd-review #20",
+        "body": "Changed files: src/zcl_arc1_test_helpers.clas.abap, src/zcl_arc1_task_service.clas.testclasses.abap. Local diff adds a helper for cancelled tasks and extends the ABAP Unit fixture. GitHub has the diff; ARC-1 checks what the SAP system has activated."
+      },
+      "next": "read-service"
+    },
+    "read-service": {
+      "id": "read-service",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-task-service-active",
+      "args": {
+        "type": "CLAS",
+        "name": "ZCL_ARC1_TASK_SERVICE",
+        "method": "LIST_TASKS"
+      },
+      "summary": "ARC-1 reads the activated method from SAP so Claude can compare the PR against runtime truth.",
+      "resultFormat": "text",
+      "result": "METHOD list_tasks. SELECT * FROM zarc1_t_task WHERE status IN @status_range INTO TABLE @rt_tasks. SORT rt_tasks BY priority due_date. ENDMETHOD.",
+      "panel": {
+        "title": "Activated SAP source",
+        "kind": "source",
+        "eyebrow": "SAPRead(type=\"CLAS\", method=\"LIST_TASKS\")",
+        "language": "abap",
+        "code": "METHOD list_tasks.\n  SELECT * FROM zarc1_t_task\n    WHERE status IN @status_range\n    INTO TABLE @rt_tasks.\n  SORT rt_tasks BY priority due_date.\nENDMETHOD."
+      },
+      "next": "read-domain"
+    },
+    "read-domain": {
+      "id": "read-domain",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-status-domain",
+      "args": {
+        "type": "DOMA",
+        "name": "ZARC1_D_STATUS"
+      },
+      "summary": "The review checks the domain values the helper is supposed to normalize.",
+      "resultFormat": "table",
+      "result": "Fixed values: A = Active, D = Done, X = Cancelled. Data element ZARC1_E_STATUS uses this domain.",
+      "panel": {
+        "title": "Status contract",
+        "kind": "table",
+        "eyebrow": "SAPRead(type=\"DOMA\")",
+        "items": [
+          {
+            "label": "A",
+            "value": "Active",
+            "tone": "good"
+          },
+          {
+            "label": "D",
+            "value": "Done",
+            "tone": "good"
+          },
+          {
+            "label": "X",
+            "value": "Cancelled",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "syntax"
+    },
+    "syntax": {
+      "id": "syntax",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "syntax-pr20",
+      "args": {
+        "action": "syntax",
+        "type": "CLAS",
+        "name": "ZCL_ARC1_TEST_HELPERS"
+      },
+      "summary": "The review runs the SAP syntax check, not just abaplint.",
+      "resultFormat": "json",
+      "result": "{\"status\":\"ok\",\"messages\":[]}",
+      "panel": {
+        "title": "SAP syntax check",
+        "kind": "terminal",
+        "body": "The changed helper class is syntactically valid in the target SAP system.",
+        "items": [
+          {
+            "label": "Syntax",
+            "value": "ok",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "unit"
+    },
+    "unit": {
+      "id": "unit",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "unit-pr20",
+      "args": {
+        "action": "unittest",
+        "type": "CLAS",
+        "name": "ZCL_ARC1_TEST_HELPERS"
+      },
+      "summary": "ARC-1 runs ABAP Unit in SAP for the changed class.",
+      "resultFormat": "json",
+      "result": "{\"class\":\"ZCL_ARC1_TEST_HELPERS\",\"tests\":7,\"passed\":7,\"failed\":0,\"errors\":0,\"durationMs\":814}",
+      "panel": {
+        "title": "ABAP Unit result",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Tests",
+            "value": "7",
+            "tone": "neutral"
+          },
+          {
+            "label": "Passed",
+            "value": "7",
+            "tone": "good"
+          },
+          {
+            "label": "Failed",
+            "value": "0",
+            "tone": "good"
+          },
+          {
+            "label": "Errors",
+            "value": "0",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "atc"
+    },
+    "atc": {
+      "id": "atc",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "atc-pr20",
+      "args": {
+        "action": "atc",
+        "type": "CLAS",
+        "name": "ZCL_ARC1_TEST_HELPERS",
+        "variant": "DEFAULT"
+      },
+      "summary": "ATC is included as a deterministic SAP-side gate before the AI posts a review.",
+      "resultFormat": "json",
+      "result": "{\"variant\":\"DEFAULT\",\"findings\":[{\"priority\":\"P3\",\"object\":\"ZCL_ARC1_TEST_HELPERS\",\"message\":\"Test helper has no production usage. Informational only.\"}]}",
+      "panel": {
+        "title": "ATC review signal",
+        "kind": "report",
+        "body": "The PR is not blocked. Claude can mention the P3 warning as low severity and avoid inventing a higher-risk issue.",
+        "items": [
+          {
+            "label": "P1/P2",
+            "value": "0",
+            "tone": "good"
+          },
+          {
+            "label": "P3",
+            "value": "1 informational",
+            "tone": "warn"
+          },
+          {
+            "label": "Merge gate",
+            "value": "passes",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "How should Claude finish the PR review?",
+      "options": [
+        {
+          "id": "review",
+          "label": "Post review",
+          "description": "Generate the evidence-backed pull request review.",
+          "recommended": true,
+          "next": "review"
+        },
+        {
+          "id": "dump",
+          "label": "Check dumps",
+          "description": "Show the operations follow-up path before posting.",
+          "next": "dump"
+        }
+      ]
+    },
+    "review": {
+      "id": "review",
+      "type": "message",
+      "role": "assistant",
+      "text": "PR review: no blocking issue found. I checked activated ZCL_ARC1_TASK_SERVICE->LIST_TASKS, confirmed ZARC1_D_STATUS allows X = Cancelled, ran SAP syntax on ZCL_ARC1_TEST_HELPERS, and ran ABAP Unit with 7/7 passing tests. ATC reports one P3 informational finding on the test helper only. Suggested human check: keep the new cancelled-task fixture readable and ensure the PR description says why X is now covered.",
+      "next": "done"
+    },
+    "dump": {
+      "id": "dump",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "recent-dumps-pr20",
+      "args": {
+        "action": "dumps",
+        "sinceHours": 24,
+        "package": "ZARC1_DEMO"
+      },
+      "summary": "The same GitHub workflow pattern can attach ST22 evidence to a PR or issue.",
+      "resultFormat": "json",
+      "result": "{\"dumps\":[],\"windowHours\":24,\"package\":\"ZARC1_DEMO\"}",
+      "panel": {
+        "title": "ST22 follow-up",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Window",
+            "value": "24 hours",
+            "tone": "neutral"
+          },
+          {
+            "label": "Package",
+            "value": "ZARC1_DEMO",
+            "tone": "neutral"
+          },
+          {
+            "label": "New dumps",
+            "value": "0",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "review"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This scenario showcases the GitHub pattern from the sample repo: abapGit and abaplint cover the file workflow, while ARC-1 contributes activated source, SAP diagnostics, ATC, ABAP Unit, and ST22 evidence."
+    }
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "id": "teams-sharepoint-impact",
+  "title": "SharePoint change request to SAP impact",
+  "shortTitle": "SharePoint impact",
+  "subtitle": "Teams replay where Copilot turns a business memo into SAP dependency evidence.",
+  "theme": "teams",
+  "group": "Business Impact",
+  "audience": "consultant",
+  "estimatedMinutes": 2,
+  "tags": [
+    "Teams",
+    "SharePoint",
+    "Impact",
+    "Read-only"
+  ],
+  "outcome": "A business summary plus the technical SAP chain behind the change.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Read the SharePoint change request in IT/Clean Core and tell me what would break.",
+      "next": "doc"
+    },
+    "doc": {
+      "id": "doc",
+      "type": "panel",
+      "panel": {
+        "title": "SharePoint memo",
+        "kind": "document",
+        "eyebrow": "IT/Clean Core/change-request-amount-domain.md",
+        "body": "Request: widen ZARC1_DEMO_AMOUNT_DOM from CURR 13,2 to CURR 23,2 because international project budgets can exceed the current limit."
+      },
+      "next": "search"
+    },
+    "search": {
+      "id": "search",
+      "type": "tool",
+      "toolName": "SAPSearch",
+      "callId": "search-domain",
+      "args": {
+        "query": "ZARC1_DEMO_AMOUNT_DOM",
+        "searchType": "object"
+      },
+      "summary": "ARC-1 finds the real domain object in SAP.",
+      "resultFormat": "table",
+      "result": "DOMA ZARC1_DEMO_AMOUNT_DOM in package $TMP.",
+      "next": "read"
+    },
+    "read": {
+      "id": "read",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-domain",
+      "args": {
+        "type": "DOMA",
+        "name": "ZARC1_DEMO_AMOUNT_DOM"
+      },
+      "summary": "ARC-1 reads current domain metadata before giving advice.",
+      "resultFormat": "json",
+      "result": "{\"datatype\":\"CURR\",\"length\":13,\"decimals\":2}",
+      "panel": {
+        "title": "Current domain",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Type",
+            "value": "CURR",
+            "tone": "neutral"
+          },
+          {
+            "label": "Length",
+            "value": "13",
+            "tone": "warn"
+          },
+          {
+            "label": "Decimals",
+            "value": "2",
+            "tone": "neutral"
+          }
+        ]
+      },
+      "next": "refs"
+    },
+    "refs": {
+      "id": "refs",
+      "type": "tool",
+      "toolName": "SAPNavigate",
+      "callId": "refs-domain",
+      "args": {
+        "action": "references",
+        "type": "DOMA",
+        "name": "ZARC1_DEMO_AMOUNT_DOM"
+      },
+      "summary": "ARC-1 follows the domain usage chain through data element, table, and report.",
+      "resultFormat": "graph",
+      "result": "ZARC1_DEMO_AMOUNT_DOM -> ZARC1_DEMO_AMOUNT -> ZARC1_DEMO_BUDGET -> ZARC1_DEMO_BUDGET_RPT",
+      "panel": {
+        "title": "SAP dependency chain",
+        "kind": "graph",
+        "items": [
+          {
+            "label": "Domain",
+            "value": "ZARC1_DEMO_AMOUNT_DOM",
+            "tone": "warn"
+          },
+          {
+            "label": "Data element",
+            "value": "ZARC1_DEMO_AMOUNT",
+            "tone": "warn"
+          },
+          {
+            "label": "Table",
+            "value": "ZARC1_DEMO_BUDGET",
+            "tone": "danger"
+          },
+          {
+            "label": "Report",
+            "value": "ZARC1_DEMO_BUDGET_RPT",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "Choose how Copilot should respond in Teams.",
+      "options": [
+        {
+          "id": "business",
+          "label": "Draft Teams summary",
+          "description": "Translate the SAP evidence into a business-readable answer.",
+          "recommended": true,
+          "next": "business"
+        },
+        {
+          "id": "technical",
+          "label": "Show technical risks",
+          "description": "Open the detailed risk list for the SAP team.",
+          "next": "technical"
+        }
+      ]
+    },
+    "business": {
+      "id": "business",
+      "type": "message",
+      "role": "assistant",
+      "text": "The change is feasible but not isolated. It affects a domain, a data element, a budget table, and one report layout. The SAP team should plan activation order and check table locks before changing the domain.",
+      "next": "done"
+    },
+    "technical": {
+      "id": "technical",
+      "type": "panel",
+      "panel": {
+        "title": "Technical risk list",
+        "kind": "report",
+        "items": [
+          {
+            "label": "Activation order",
+            "value": "Domain -> data element -> table -> report",
+            "tone": "warn"
+          },
+          {
+            "label": "Table conversion",
+            "value": "Budget table may require lock/window",
+            "tone": "danger"
+          },
+          {
+            "label": "UI/report layout",
+            "value": "Hardcoded output length must be reviewed",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This is the end-user story: SharePoint explains the request, ARC-1 proves the real SAP blast radius."
+    }
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "id": "teams-clean-core",
+  "title": "Clean Core readiness in Teams",
+  "shortTitle": "Clean Core",
+  "subtitle": "Teams replay showing custom-code evidence, release state, and a modernization summary.",
+  "theme": "teams",
+  "group": "Governance",
+  "audience": "architect",
+  "estimatedMinutes": 2,
+  "tags": [
+    "Teams",
+    "Clean Core",
+    "ATC",
+    "API state"
+  ],
+  "outcome": "A risk card with evidence and released successor suggestions.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Is ZCL_ARC1_DEMO_CCORE clean-core ready?",
+      "next": "read"
+    },
+    "read": {
+      "id": "read",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-clean-core",
+      "args": {
+        "type": "CLAS",
+        "name": "ZCL_ARC1_DEMO_CCORE",
+        "grep": "SELECT|USR02|BUT000",
+        "context": 2
+      },
+      "summary": "ARC-1 reads the relevant custom-code evidence.",
+      "resultFormat": "text",
+      "result": "SELECT * FROM usr02 ...\nSELECT * FROM but000 ...",
+      "panel": {
+        "title": "Custom-code evidence",
+        "kind": "source",
+        "language": "abap",
+        "code": "SELECT SINGLE * FROM usr02 INTO @DATA(user_row) WHERE bname = @iv_user.\nSELECT SINGLE * FROM but000 INTO @DATA(bp_row) WHERE partner = @iv_partner."
+      },
+      "next": "api-state"
+    },
+    "api-state": {
+      "id": "api-state",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "api-state",
+      "args": {
+        "type": "API_STATE",
+        "name": "USR02,BUT000"
+      },
+      "summary": "ARC-1 asks the SAP system for release-state evidence.",
+      "resultFormat": "table",
+      "result": "USR02: internal table, no released contract. BUT000: use released business partner API/view.",
+      "panel": {
+        "title": "Release-state evidence",
+        "kind": "table",
+        "items": [
+          {
+            "label": "USR02",
+            "value": "Internal table; use I_BUSINESSUSERBASIC where applicable",
+            "tone": "danger"
+          },
+          {
+            "label": "BUT000",
+            "value": "Prefer released business partner APIs/views",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "atc"
+    },
+    "atc": {
+      "id": "atc",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "atc-clean-core",
+      "args": {
+        "action": "atc",
+        "type": "CLAS",
+        "name": "ZCL_ARC1_DEMO_CCORE"
+      },
+      "summary": "ARC-1 adds SAP-side quality signals to the source evidence.",
+      "resultFormat": "json",
+      "result": "{\"findings\":[],\"variant\":\"DEFAULT\"}",
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "What should Teams show?",
+      "options": [
+        {
+          "id": "risk-card",
+          "label": "Risk card",
+          "description": "Show the concise architecture view.",
+          "recommended": true,
+          "next": "risk-card"
+        },
+        {
+          "id": "backlog",
+          "label": "Backlog item",
+          "description": "Turn the evidence into a modernization task.",
+          "next": "backlog"
+        }
+      ]
+    },
+    "risk-card": {
+      "id": "risk-card",
+      "type": "panel",
+      "panel": {
+        "title": "Clean Core risk card",
+        "kind": "report",
+        "body": "Not clean-core ready. The class directly reads internal SAP tables and should be refactored toward released APIs or released CDS views before a cloud-readiness target.",
+        "items": [
+          {
+            "label": "Risk",
+            "value": "Direct table access",
+            "tone": "danger"
+          },
+          {
+            "label": "Evidence",
+            "value": "USR02 and BUT000 reads",
+            "tone": "warn"
+          },
+          {
+            "label": "Next step",
+            "value": "Replace with released APIs/views",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "backlog": {
+      "id": "backlog",
+      "type": "message",
+      "role": "assistant",
+      "text": "Backlog item: Refactor ZCL_ARC1_DEMO_CCORE away from direct USR02/BUT000 reads. Acceptance: no direct internal SAP table reads, replacement uses released API/view where available, ATC stays clean, and behavior is covered by unit tests.",
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This is useful in Teams because the answer is evidence-backed, not a generic Clean Core explanation."
+    }
+  }
+}

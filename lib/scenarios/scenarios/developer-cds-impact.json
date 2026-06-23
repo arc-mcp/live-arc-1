@@ -1,0 +1,109 @@
+{
+  "id": "developer-cds-impact",
+  "title": "CDS impact analysis",
+  "shortTitle": "CDS impact",
+  "subtitle": "VS Code replay for \"what breaks if I change this CDS view?\" using SAPContext impact.",
+  "theme": "vscode",
+  "group": "Understanding",
+  "audience": "architect",
+  "estimatedMinutes": 1,
+  "tags": [
+    "VS Code",
+    "SAPContext",
+    "CDS",
+    "Impact"
+  ],
+  "outcome": "A blast-radius view with upstream sources and downstream consumers.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "In my SAP system, what breaks if I change the CDS view I_COUNTRY?",
+      "next": "impact"
+    },
+    "impact": {
+      "id": "impact",
+      "type": "tool",
+      "toolName": "SAPContext",
+      "callId": "impact-i-country",
+      "args": {
+        "action": "impact",
+        "type": "DDLS",
+        "name": "I_COUNTRY"
+      },
+      "summary": "ARC-1 routes the blast-radius question to the dedicated CDS impact tool.",
+      "resultFormat": "graph",
+      "result": "Upstream: T005, I_Language. Downstream: C_COUNTRY, CL_COUNTRY_API. Summary: 2 direct consumers, 0 indirect consumers.",
+      "panel": {
+        "title": "CDS blast radius",
+        "kind": "graph",
+        "eyebrow": "SAPContext(action=\"impact\")",
+        "body": "ARC-1 avoids ad-hoc SQL scans over DDDDLSRC and uses the dependency classifier for the connected system.",
+        "items": [
+          {
+            "label": "Upstream",
+            "value": "T005, I_Language",
+            "tone": "neutral"
+          },
+          {
+            "label": "Projection view",
+            "value": "C_COUNTRY",
+            "tone": "warn"
+          },
+          {
+            "label": "ABAP consumer",
+            "value": "CL_COUNTRY_API",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "Choose the view of the impact result.",
+      "options": [
+        {
+          "id": "business",
+          "label": "Business summary",
+          "description": "Explain the impact for a product owner.",
+          "recommended": true,
+          "next": "business"
+        },
+        {
+          "id": "technical",
+          "label": "Technical details",
+          "description": "Show the downstream object list and the avoided anti-pattern.",
+          "next": "technical"
+        }
+      ]
+    },
+    "business": {
+      "id": "business",
+      "type": "message",
+      "role": "assistant",
+      "text": "Low blast radius: one projection and one ABAP consumer depend directly on I_COUNTRY. Review C_COUNTRY and CL_COUNTRY_API before changing fields or semantics.",
+      "next": "done"
+    },
+    "technical": {
+      "id": "technical",
+      "type": "panel",
+      "panel": {
+        "title": "Why not SQL scan?",
+        "kind": "terminal",
+        "body": "The forbidden route is SELECTing DDDDLSRC/ACMDCLSRC manually. ARC-1 exposes SAPContext impact so the model does not burn tokens guessing where CDS consumers live.",
+        "code": "Forbidden anti-pattern:\n  SAPQuery(\"SELECT * FROM DDDDLSRC WHERE source LIKE ...\")\n\nPreferred:\n  SAPContext(action=\"impact\", type=\"DDLS\", name=\"I_COUNTRY\")"
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "The impact result is scoped enough to become a review checklist instead of a broad source search."
+    }
+  }
+}

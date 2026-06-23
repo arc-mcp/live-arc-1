@@ -1,0 +1,179 @@
+{
+  "id": "developer-dependency-map",
+  "title": "Understand a class before changing it",
+  "shortTitle": "Class dependencies",
+  "subtitle": "VS Code replay showing SAPContext, dependency contracts, source grep, and where-used context.",
+  "theme": "vscode",
+  "group": "Understanding",
+  "audience": "developer",
+  "estimatedMinutes": 2,
+  "tags": [
+    "VS Code",
+    "SAPContext",
+    "Dependencies",
+    "Read-only"
+  ],
+  "outcome": "A dependency map and safe next-step plan before any code is touched.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "I need to change ZCL_BILLING. First show me what it depends on and where the risky edges are.",
+      "next": "context"
+    },
+    "context": {
+      "id": "context",
+      "type": "tool",
+      "toolName": "SAPContext",
+      "callId": "ctx-zcl-billing",
+      "args": {
+        "action": "deps",
+        "type": "CLAS",
+        "name": "ZCL_BILLING"
+      },
+      "summary": "ARC-1 reads dependency context instead of pulling the full system into the prompt.",
+      "resultFormat": "graph",
+      "result": "Compressed dependency context for ZCL_BILLING: interface ZIF_BILLING_CALCULATOR, class ZCL_TAX_ENGINE, CDS ZI_BILLING_ITEM, domain ZAMOUNT_DOM. 54 lines returned from 410 lines of related source.",
+      "panel": {
+        "title": "Dependency context",
+        "kind": "graph",
+        "eyebrow": "SAPContext(action=\"deps\")",
+        "body": "ZCL_BILLING depends on one public calculator interface, one tax engine class, one CDS view, and a shared amount domain. ARC-1 returns contracts and relevant snippets instead of entire objects.",
+        "items": [
+          {
+            "label": "Compression",
+            "value": "54 lines from 410",
+            "tone": "good"
+          },
+          {
+            "label": "Risk edge",
+            "value": "ZCL_TAX_ENGINE performs external tax lookup",
+            "tone": "warn"
+          },
+          {
+            "label": "Stable contract",
+            "value": "ZIF_BILLING_CALCULATOR",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "grep"
+    },
+    "grep": {
+      "id": "grep",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-zcl-billing-process",
+      "args": {
+        "type": "CLAS",
+        "name": "ZCL_BILLING",
+        "grep": "calculate|tax|amount",
+        "context": 2
+      },
+      "summary": "ARC-1 narrows the source read to the relevant method lines.",
+      "resultFormat": "text",
+      "result": "METHOD process.\n  DATA(total) = calculator->calculate( items ).\n  DATA(tax) = tax_engine->compute_tax( total ).\n  rv_amount = total + tax.\nENDMETHOD.",
+      "panel": {
+        "title": "Relevant source lines",
+        "kind": "source",
+        "eyebrow": "SAPRead(grep)",
+        "language": "abap",
+        "code": "METHOD process.\n  DATA(total) = calculator->calculate( items ).\n  DATA(tax) = tax_engine->compute_tax( total ).\n  rv_amount = total + tax.\nENDMETHOD."
+      },
+      "next": "references"
+    },
+    "references": {
+      "id": "references",
+      "type": "tool",
+      "toolName": "SAPNavigate",
+      "callId": "refs-zcl-billing",
+      "args": {
+        "action": "references",
+        "type": "CLAS",
+        "name": "ZCL_BILLING"
+      },
+      "summary": "ARC-1 asks ADT for references before recommending a change plan.",
+      "resultFormat": "table",
+      "result": "3 direct callers: ZCL_INVOICE_SERVICE, ZCL_REBATE_JOB, ZTEST_BILLING_FLOW.",
+      "panel": {
+        "title": "Where-used context",
+        "kind": "table",
+        "eyebrow": "SAPNavigate(action=\"references\")",
+        "items": [
+          {
+            "label": "ZCL_INVOICE_SERVICE",
+            "value": "productive billing path",
+            "tone": "warn"
+          },
+          {
+            "label": "ZCL_REBATE_JOB",
+            "value": "nightly batch consumer",
+            "tone": "warn"
+          },
+          {
+            "label": "ZTEST_BILLING_FLOW",
+            "value": "unit test coverage exists",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "What should the replay show next?",
+      "options": [
+        {
+          "id": "risk-plan",
+          "label": "Show change plan",
+          "description": "Summarize the safe edit path from the dependency evidence.",
+          "recommended": true,
+          "next": "risk-plan"
+        },
+        {
+          "id": "open-tax",
+          "label": "Inspect tax engine",
+          "description": "Drill into the riskiest dependency before editing billing.",
+          "next": "tax-context"
+        }
+      ]
+    },
+    "risk-plan": {
+      "id": "risk-plan",
+      "type": "message",
+      "role": "assistant",
+      "text": "Recommended path: keep the public interface stable, change only ZCL_BILLING->PROCESS, run ABAP Unit for ZTEST_BILLING_FLOW, and review the nightly batch caller because it shares the tax-engine dependency.",
+      "next": "done"
+    },
+    "tax-context": {
+      "id": "tax-context",
+      "type": "tool",
+      "toolName": "SAPContext",
+      "callId": "ctx-tax-engine",
+      "args": {
+        "action": "deps",
+        "type": "CLAS",
+        "name": "ZCL_TAX_ENGINE"
+      },
+      "summary": "The replay drills into the tax engine dependency without losing the original class context.",
+      "resultFormat": "text",
+      "result": "ZCL_TAX_ENGINE calls external destination TAX_RFC and table ZTAX_RULES. No public method signature change needed.",
+      "panel": {
+        "title": "Tax engine risk",
+        "kind": "report",
+        "eyebrow": "Dependency drilldown",
+        "body": "The risky part is not the billing class itself. It is the tax engine dependency and the batch caller that reuses the same calculation result."
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This is the ARC-1 pattern: start with system context, then open only the source and callers that matter. The user gets a bounded change plan instead of a giant class dump."
+    }
+  }
+}

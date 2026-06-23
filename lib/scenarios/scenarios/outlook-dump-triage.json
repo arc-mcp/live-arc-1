@@ -1,0 +1,138 @@
+{
+  "id": "outlook-dump-triage",
+  "title": "Short dump triage from an Outlook mail",
+  "shortTitle": "Dump triage",
+  "subtitle": "Outlook replay where Copilot reads a weak support mail, checks ST22, and drafts a reply.",
+  "theme": "outlook",
+  "group": "Operations",
+  "audience": "support",
+  "estimatedMinutes": 2,
+  "tags": [
+    "Outlook",
+    "ST22",
+    "SAPDiagnose",
+    "Support"
+  ],
+  "outcome": "Root cause, evidence, and a support reply drafted from SAP diagnostics.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "This overnight job short dumped. Can you investigate and draft a reply?",
+      "next": "mail"
+    },
+    "mail": {
+      "id": "mail",
+      "type": "panel",
+      "panel": {
+        "title": "Outlook message",
+        "kind": "email",
+        "eyebrow": "From: operations@example.com",
+        "body": "Subject: Overnight ABAP dump in DEV\n\nZARC1_DEMO_DUMP_RPT failed around 02:13. ST22 should have the dump. Please check whether this is a code issue."
+      },
+      "next": "dumps"
+    },
+    "dumps": {
+      "id": "dumps",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "recent-dumps",
+      "args": {
+        "action": "dumps",
+        "object": "ZARC1_DEMO_DUMP_RPT"
+      },
+      "summary": "ARC-1 reads the recent dump list from the SAP system.",
+      "resultFormat": "json",
+      "result": "{\"program\":\"ZARC1_DEMO_DUMP_RPT\",\"error\":\"DBSQL_SQL_ERROR\",\"time\":\"02:13:42\"}",
+      "panel": {
+        "title": "ST22 evidence",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Program",
+            "value": "ZARC1_DEMO_DUMP_RPT",
+            "tone": "warn"
+          },
+          {
+            "label": "Runtime error",
+            "value": "DBSQL_SQL_ERROR",
+            "tone": "danger"
+          },
+          {
+            "label": "Time",
+            "value": "02:13:42",
+            "tone": "neutral"
+          }
+        ]
+      },
+      "next": "source"
+    },
+    "source": {
+      "id": "source",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-dump-report",
+      "args": {
+        "type": "PROG",
+        "name": "ZARC1_DEMO_DUMP_RPT",
+        "grep": "SELECT FROM \\(p_table\\)|p_table"
+      },
+      "summary": "ARC-1 reads the risky dynamic SELECT area, not the whole report.",
+      "resultFormat": "text",
+      "result": "SELECT * FROM (p_table) INTO TABLE @DATA(result).",
+      "panel": {
+        "title": "Risky source line",
+        "kind": "source",
+        "language": "abap",
+        "code": "PARAMETERS p_table TYPE tabname.\n\nSELECT * FROM (p_table) INTO TABLE @DATA(result)."
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "Choose the support view.",
+      "options": [
+        {
+          "id": "reply",
+          "label": "Draft Outlook reply",
+          "description": "Write a clear reply with root cause and next action.",
+          "recommended": true,
+          "next": "reply"
+        },
+        {
+          "id": "patch",
+          "label": "Show defensive patch",
+          "description": "Show the simulated validation diff that would prevent this dump.",
+          "next": "patch"
+        }
+      ]
+    },
+    "reply": {
+      "id": "reply",
+      "type": "message",
+      "role": "assistant",
+      "text": "Draft reply: I found a DBSQL_SQL_ERROR in ZARC1_DEMO_DUMP_RPT at 02:13. The report accepts a dynamic table name and executes SELECT FROM (p_table) without validating the input. This is a code issue. Recommended fix: validate the table name against DDIC metadata before the SELECT and return a controlled error for invalid input.",
+      "next": "done"
+    },
+    "patch": {
+      "id": "patch",
+      "type": "panel",
+      "panel": {
+        "title": "Defensive validation diff",
+        "kind": "diff",
+        "language": "diff",
+        "code": "+SELECT SINGLE tabname FROM dd02l\n+  WHERE tabname = @p_table AND as4local = @space\n+  INTO @DATA(valid_table).\n+IF sy-subrc <> 0.\n+  MESSAGE e001(zarc1) WITH p_table.\n+ENDIF.\n SELECT * FROM (p_table) INTO TABLE @DATA(result)."
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "Support users do not need ADT open to get the initial SAP evidence, but the fix still stays a human-reviewed development task."
+    }
+  }
+}

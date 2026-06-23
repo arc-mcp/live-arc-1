@@ -1,0 +1,227 @@
+{
+  "id": "ui5-typescript-modernization",
+  "title": "Modernize legacy UI5 after SEGW to RAP",
+  "shortTitle": "UI5 modernization",
+  "subtitle": "VS Code replay showing how ARC-1 anchors a UI5 TypeScript or Fiori Elements migration in the generated RAP service.",
+  "theme": "vscode",
+  "group": "Modernization",
+  "audience": "developer",
+  "estimatedMinutes": 4,
+  "tags": [
+    "VS Code",
+    "UI5",
+    "RAP",
+    "Fiori"
+  ],
+  "outcome": "A UI migration plan tied to the real RAP service binding, projection entities, and legacy SEGW behavior.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "The backend migration created ZUI_DM_PROJECTS_O4. Show how the legacy UI5 app maps to either Fiori Elements or a TypeScript freestyle app.",
+      "next": "legacy"
+    },
+    "legacy": {
+      "id": "legacy",
+      "type": "panel",
+      "panel": {
+        "title": "Legacy UI5 scan",
+        "kind": "document",
+        "eyebrow": "legacy-ui5-app",
+        "body": "The app is a UI5 1.84 freestyle JavaScript master-detail app. It uses a hardcoded OData V2 model, ProjectSet -> Tasks navigation, Task -> TimeEntries navigation, and a function import ApproveProject."
+      },
+      "next": "srvb"
+    },
+    "srvb": {
+      "id": "srvb",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-rap-service-binding",
+      "args": {
+        "type": "SRVB",
+        "name": "ZUI_DM_PROJECTS_O4"
+      },
+      "summary": "ARC-1 reads the V4 service binding that the UI migration must target.",
+      "resultFormat": "json",
+      "result": "{\"service\":\"ZUI_DM_PROJECTS\",\"protocol\":\"OData V4\",\"entities\":[\"Project\",\"Task\",\"TimeEntry\"],\"bindingStatus\":\"published\"}",
+      "panel": {
+        "title": "Published RAP service",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Service binding",
+            "value": "ZUI_DM_PROJECTS_O4",
+            "tone": "good"
+          },
+          {
+            "label": "Protocol",
+            "value": "OData V4",
+            "tone": "good"
+          },
+          {
+            "label": "Entities",
+            "value": "Project, Task, TimeEntry",
+            "tone": "neutral"
+          }
+        ]
+      },
+      "next": "projection"
+    },
+    "projection": {
+      "id": "projection",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-project-projection",
+      "args": {
+        "type": "DDLS",
+        "name": "ZC_DM_PROJECT",
+        "include": "elements"
+      },
+      "summary": "The replay reads the projection fields and association names before designing UI bindings.",
+      "resultFormat": "table",
+      "result": "Fields: ProjectId, Name, Customer, Status, TotalBudget, Criticality. Associations: _Tasks. Actions exposed by behavior: approve_project.",
+      "panel": {
+        "title": "Projection contract",
+        "kind": "table",
+        "eyebrow": "SAPRead(type=\"DDLS\", include=\"elements\")",
+        "items": [
+          {
+            "label": "Root entity",
+            "value": "ZC_DM_PROJECT",
+            "tone": "good"
+          },
+          {
+            "label": "Navigation",
+            "value": "_Tasks, _TimeEntries",
+            "tone": "warn"
+          },
+          {
+            "label": "Action",
+            "value": "approve_project",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "legacy-action"
+    },
+    "legacy-action": {
+      "id": "legacy-action",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-legacy-approve-action",
+      "args": {
+        "type": "CLAS",
+        "name": "ZCL_ZDEMO_MIG_PROJECTS_DPC_EXT",
+        "method": "EXECUTE_ACTION"
+      },
+      "summary": "ARC-1 reads the old function-import behavior so the UI action is not guessed from the UI code alone.",
+      "resultFormat": "text",
+      "result": "Legacy ApproveProject(ProjectId) validates status = DRAFT, updates ZDM_PROJECT-STATUS = APPROVED, and commits directly.",
+      "panel": {
+        "title": "Action migration mapping",
+        "kind": "report",
+        "body": "The V2 function import maps to the RAP bound action approve_project. The UI must call the V4 bound action, not recreate the old function-import URL.",
+        "items": [
+          {
+            "label": "Old UI call",
+            "value": "/ApproveProject(ProjectId=...)",
+            "tone": "danger"
+          },
+          {
+            "label": "New UI call",
+            "value": "bound action approve_project",
+            "tone": "good"
+          },
+          {
+            "label": "Binding caveat",
+            "value": "RAP associations use underscore names",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "Which UI target should the replay show?",
+      "options": [
+        {
+          "id": "fe",
+          "label": "Fiori Elements",
+          "description": "Use annotations and a generated LROP app when the UX is standard CRUD.",
+          "recommended": true,
+          "next": "fe"
+        },
+        {
+          "id": "ts",
+          "label": "UI5 TypeScript",
+          "description": "Use a freestyle TypeScript app when custom interaction stays important.",
+          "next": "ts"
+        }
+      ]
+    },
+    "fe": {
+      "id": "fe",
+      "type": "panel",
+      "panel": {
+        "title": "Fiori Elements plan",
+        "kind": "report",
+        "body": "Backend first: write @UI.HeaderInfo, @UI.LineItem, @UI.Facet, @Search, and action annotations to the RAP projections, activate them, republish the service binding, then let the Fiori MCP generator read the annotated metadata.",
+        "items": [
+          {
+            "label": "Annotations",
+            "value": "ZME_DM_PROJECT, ZME_DM_TASK, ZME_DM_TIMEENTRY",
+            "tone": "good"
+          },
+          {
+            "label": "Service",
+            "value": "Republish ZUI_DM_PROJECTS_O4",
+            "tone": "warn"
+          },
+          {
+            "label": "Custom code",
+            "value": "Only extensions for behavior not covered by annotations",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "ts": {
+      "id": "ts",
+      "type": "panel",
+      "panel": {
+        "title": "UI5 TypeScript plan",
+        "kind": "report",
+        "body": "Freestyle path: scaffold UI5 1.147 TypeScript, move the OData V4 model into manifest.json, replace ProjectSet/Tasks bindings with Project/_Tasks, and replace the old function import with a V4 bound action execution.",
+        "items": [
+          {
+            "label": "Framework",
+            "value": "SAPUI5 1.147 + TypeScript",
+            "tone": "good"
+          },
+          {
+            "label": "Routing",
+            "value": "FlexibleColumnLayout with typed controllers",
+            "tone": "good"
+          },
+          {
+            "label": "Validation",
+            "value": "Typecheck, UI5 linter, manifest validation, browser smoke",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This modernization scenario is valuable because ARC-1 keeps the UI migration anchored in the live RAP service contract instead of treating UI5 as a detached frontend rewrite."
+    }
+  }
+}

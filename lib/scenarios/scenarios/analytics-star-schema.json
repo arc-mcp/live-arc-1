@@ -1,0 +1,215 @@
+{
+  "id": "analytics-star-schema",
+  "title": "Generate a CDS analytics model from operational tables",
+  "shortTitle": "Analytics model",
+  "subtitle": "Copilot replay showing a governed analytics path: table inspection, reusable dimensions, cube generation, activation, and optional query.",
+  "theme": "copilot",
+  "group": "Analytics",
+  "audience": "consultant",
+  "estimatedMinutes": 3,
+  "tags": [
+    "Copilot",
+    "Analytics",
+    "CDS",
+    "SAPWrite"
+  ],
+  "outcome": "A planned CDS star schema and query layer from SAP system metadata.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Create an analytics model for billing items. I want a cube with dimensions and a query, but show me the plan before any write.",
+      "next": "table"
+    },
+    "table": {
+      "id": "table",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-billing-table",
+      "args": {
+        "type": "TABL",
+        "name": "ZBILLING_ITEM",
+        "include": "fields"
+      },
+      "summary": "ARC-1 reads DDIC metadata before proposing analytical CDS artifacts.",
+      "resultFormat": "table",
+      "result": "Fields: Client, BillingDocument, Item, CompanyCode, Customer, Currency, NetAmount, TaxAmount, BillingDate, Product.",
+      "panel": {
+        "title": "Operational table metadata",
+        "kind": "table",
+        "eyebrow": "SAPRead(type=\"TABL\")",
+        "items": [
+          {
+            "label": "Measures",
+            "value": "NetAmount, TaxAmount",
+            "tone": "good"
+          },
+          {
+            "label": "Currency",
+            "value": "Currency field available",
+            "tone": "good"
+          },
+          {
+            "label": "Dimensions",
+            "value": "CompanyCode, Customer, Product, Date",
+            "tone": "neutral"
+          }
+        ]
+      },
+      "next": "reuse"
+    },
+    "reuse": {
+      "id": "reuse",
+      "type": "tool",
+      "toolName": "SAPSearch",
+      "callId": "search-analytics-dimensions",
+      "args": {
+        "query": "I_CompanyCode I_Customer I_Product I_CalendarDate",
+        "searchType": "object"
+      },
+      "summary": "The analytics skill prefers reusable released dimensions over inventing every view.",
+      "resultFormat": "table",
+      "result": "Reusable views found: I_CompanyCode, I_Customer, I_Product, I_CalendarDate. No custom text view needed for CompanyCode.",
+      "panel": {
+        "title": "Reusable dimension candidates",
+        "kind": "table",
+        "items": [
+          {
+            "label": "Company",
+            "value": "I_CompanyCode",
+            "tone": "good"
+          },
+          {
+            "label": "Customer",
+            "value": "I_Customer",
+            "tone": "good"
+          },
+          {
+            "label": "Product",
+            "value": "I_Product",
+            "tone": "good"
+          },
+          {
+            "label": "Date",
+            "value": "I_CalendarDate",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "The analytics plan is ready. What should the replay show next?",
+      "options": [
+        {
+          "id": "plan",
+          "label": "Show plan only",
+          "description": "Stop at a human approval artifact.",
+          "recommended": true,
+          "next": "plan"
+        },
+        {
+          "id": "create",
+          "label": "Simulate create",
+          "description": "Show the batch_create and activation sequence.",
+          "next": "create"
+        }
+      ]
+    },
+    "plan": {
+      "id": "plan",
+      "type": "panel",
+      "panel": {
+        "title": "CDS analytics plan",
+        "kind": "report",
+        "body": "The safe approval artifact lists every object before writes: interface cube ZI_BILLING_CUBE, projection cube ZC_BILLING_CUBE, optional text/dimension helpers only where released SAP views are missing, and query ZQ_BILLING_OVERVIEW.",
+        "items": [
+          {
+            "label": "Cube",
+            "value": "ZI_BILLING_CUBE / ZC_BILLING_CUBE",
+            "tone": "good"
+          },
+          {
+            "label": "Measures",
+            "value": "NetAmount, TaxAmount with currency semantics",
+            "tone": "good"
+          },
+          {
+            "label": "Dimensions",
+            "value": "Reuse released I_* views",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "create": {
+      "id": "create",
+      "type": "tool",
+      "toolName": "SAPWrite",
+      "callId": "batch-create-analytics",
+      "args": {
+        "action": "batch_create",
+        "package": "ZANALYTICS",
+        "activateAtEnd": true,
+        "objects": [
+          "ZI_BILLING_CUBE",
+          "ZC_BILLING_CUBE",
+          "ZQ_BILLING_OVERVIEW"
+        ]
+      },
+      "summary": "Interdependent CDS objects are created together and activated at the end.",
+      "resultFormat": "text",
+      "result": "Created 3 DDLS objects. Activation deferred until the cube and query are both present.",
+      "next": "activate"
+    },
+    "activate": {
+      "id": "activate",
+      "type": "tool",
+      "toolName": "SAPActivate",
+      "callId": "activate-analytics",
+      "args": {
+        "objects": [
+          "ZI_BILLING_CUBE",
+          "ZC_BILLING_CUBE",
+          "ZQ_BILLING_OVERVIEW"
+        ]
+      },
+      "summary": "Activation validates provider contracts and dependencies in SAP.",
+      "resultFormat": "json",
+      "result": "{\"status\":\"ok\",\"activated\":3,\"warnings\":[]}",
+      "panel": {
+        "title": "Analytics activation result",
+        "kind": "terminal",
+        "items": [
+          {
+            "label": "Activated",
+            "value": "3 DDLS objects",
+            "tone": "good"
+          },
+          {
+            "label": "Warnings",
+            "value": "0",
+            "tone": "good"
+          },
+          {
+            "label": "Next validation",
+            "value": "Read query elements and run consumer smoke",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This replay turns the analytics skills into a product demo: inspect real table metadata, reuse released dimensions, stop for approval, and only then generate the analytical CDS stack."
+    }
+  }
+}

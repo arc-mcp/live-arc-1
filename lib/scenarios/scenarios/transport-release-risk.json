@@ -1,0 +1,205 @@
+{
+  "id": "transport-release-risk",
+  "title": "Teams release review for open SAP transports",
+  "shortTitle": "Transport risk",
+  "subtitle": "Release-manager replay that inventories modifiable transports, detects risky locks, and prepares a Teams release summary.",
+  "theme": "teams",
+  "group": "Operations",
+  "audience": "release-manager",
+  "estimatedMinutes": 3,
+  "tags": [
+    "Teams",
+    "Transport",
+    "Release",
+    "Risk"
+  ],
+  "outcome": "A transport risk view before the release manager asks teams to release requests.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Before tomorrow morning release, show me open transports in DEV and the risky objects. I need a Teams summary, not raw CTS output.",
+      "next": "overview"
+    },
+    "overview": {
+      "id": "overview",
+      "type": "tool",
+      "toolName": "SAPTransport",
+      "callId": "open-transport-overview",
+      "args": {
+        "action": "overview",
+        "status": "modifiable",
+        "includeObjects": true
+      },
+      "summary": "ARC-1 reads the CTS inventory and groups transports by owner and risk.",
+      "resultFormat": "table",
+      "result": "12 modifiable requests. 4 owned by SD team, 3 by FI team, 5 by platform. Risks: 2 stale requests older than 14 days, 1 object locked in two requests, 3 $TMP objects referenced by transportable code.",
+      "panel": {
+        "title": "Open transport inventory",
+        "kind": "transport",
+        "eyebrow": "SAPTransport(action=\"overview\")",
+        "items": [
+          {
+            "label": "Modifiable requests",
+            "value": "12",
+            "tone": "warn"
+          },
+          {
+            "label": "Stale requests",
+            "value": "2 older than 14 days",
+            "tone": "danger"
+          },
+          {
+            "label": "Duplicate locks",
+            "value": "ZCL_SD_PRICING in two requests",
+            "tone": "danger"
+          }
+        ]
+      },
+      "next": "history"
+    },
+    "history": {
+      "id": "history",
+      "type": "tool",
+      "toolName": "SAPTransport",
+      "callId": "history-pricing",
+      "args": {
+        "action": "history",
+        "object": {
+          "type": "CLAS",
+          "name": "ZCL_SD_PRICING"
+        }
+      },
+      "summary": "Transport history explains whether a duplicate lock is harmless or a release conflict.",
+      "resultFormat": "table",
+      "result": "ZCL_SD_PRICING appears in A4HK903812 (SD pricing fix, owner MEIER) and A4HK903799 (old migration cleanup, owner SCHULZ). Last changed 2026-06-19 and 2026-05-30.",
+      "panel": {
+        "title": "Duplicate lock detail",
+        "kind": "table",
+        "items": [
+          {
+            "label": "A4HK903812",
+            "value": "Current SD pricing fix, changed 2026-06-19",
+            "tone": "warn"
+          },
+          {
+            "label": "A4HK903799",
+            "value": "Old migration cleanup, changed 2026-05-30",
+            "tone": "danger"
+          },
+          {
+            "label": "Risk",
+            "value": "Release order conflict",
+            "tone": "danger"
+          }
+        ]
+      },
+      "next": "object-state"
+    },
+    "object-state": {
+      "id": "object-state",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "object-state-release",
+      "args": {
+        "action": "object_state",
+        "objects": [
+          "ZCL_SD_PRICING",
+          "ZSD_ORDER_RPT",
+          "ZCL_FI_TAX_HELPER"
+        ]
+      },
+      "summary": "ARC-1 checks activation state before the release manager asks teams to release requests.",
+      "resultFormat": "json",
+      "result": "{\"inactive\":[\"ZSD_ORDER_RPT\"],\"syntaxErrors\":[],\"warnings\":[\"ZCL_FI_TAX_HELPER generated warning in last check\"]}",
+      "panel": {
+        "title": "Release readiness checks",
+        "kind": "report",
+        "items": [
+          {
+            "label": "Inactive object",
+            "value": "ZSD_ORDER_RPT",
+            "tone": "danger"
+          },
+          {
+            "label": "Syntax errors",
+            "value": "0",
+            "tone": "good"
+          },
+          {
+            "label": "Warnings",
+            "value": "1 FI helper warning",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "What should the release manager send to Teams?",
+      "options": [
+        {
+          "id": "summary",
+          "label": "Release summary",
+          "description": "Prepare the channel update with owners and blockers.",
+          "recommended": true,
+          "next": "summary"
+        },
+        {
+          "id": "owner-list",
+          "label": "Owner actions",
+          "description": "Show the detailed owner-by-owner action list.",
+          "next": "owner-list"
+        }
+      ]
+    },
+    "summary": {
+      "id": "summary",
+      "type": "message",
+      "role": "assistant",
+      "text": "Teams update: release is not ready yet. Please resolve three blockers before tomorrow: MEIER/SCHULZ need to decide ownership and release order for ZCL_SD_PRICING, SD team must activate ZSD_ORDER_RPT, and FI should review the warning on ZCL_FI_TAX_HELPER. No transport changes were made by this replay.",
+      "next": "done"
+    },
+    "owner-list": {
+      "id": "owner-list",
+      "type": "panel",
+      "panel": {
+        "title": "Owner action list",
+        "kind": "transport",
+        "items": [
+          {
+            "label": "MEIER",
+            "value": "Confirm A4HK903812 can wait for cleanup request or move object",
+            "tone": "danger"
+          },
+          {
+            "label": "SCHULZ",
+            "value": "Close or release stale A4HK903799",
+            "tone": "danger"
+          },
+          {
+            "label": "SD team",
+            "value": "Activate ZSD_ORDER_RPT before release cut",
+            "tone": "danger"
+          },
+          {
+            "label": "FI team",
+            "value": "Review warning on ZCL_FI_TAX_HELPER",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This is a low-cost high-value operations demo: ARC-1 reads transport and activation evidence, then Teams gets a clear action list."
+    }
+  }
+}

@@ -1,0 +1,239 @@
+{
+  "id": "copilot-package-clean-core-backlog",
+  "title": "Copilot turns package evidence into a Clean Core backlog",
+  "shortTitle": "Package backlog",
+  "subtitle": "Copilot replay for package-level Clean Core planning: enumerate objects, run ATC, read release state, and group backlog items.",
+  "theme": "copilot",
+  "group": "Governance",
+  "audience": "architect",
+  "estimatedMinutes": 4,
+  "tags": [
+    "Copilot",
+    "Clean Core",
+    "Package",
+    "Backlog"
+  ],
+  "outcome": "A grouped modernization backlog with risk levels and SAP evidence.",
+  "startNodeId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "type": "message",
+      "role": "user",
+      "text": "Analyze package ZSD_LEGACY for Clean Core and ABAP Cloud risks. Do not change code. Group findings into a modernization backlog.",
+      "next": "package"
+    },
+    "package": {
+      "id": "package",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "read-zsd-legacy-package",
+      "args": {
+        "type": "DEVC",
+        "name": "ZSD_LEGACY",
+        "includeSubpackages": true
+      },
+      "summary": "ARC-1 starts with package inventory, not a single hand-picked class.",
+      "resultFormat": "table",
+      "result": "28 custom objects found: 9 CLAS, 3 INTF, 5 PROG, 6 DDLS, 2 TABL, 2 MSAG, 1 SRVD. 7 objects are in $TMP and need ownership cleanup.",
+      "panel": {
+        "title": "Package inventory",
+        "kind": "table",
+        "eyebrow": "SAPRead(type=\"DEVC\")",
+        "items": [
+          {
+            "label": "Objects",
+            "value": "28",
+            "tone": "neutral"
+          },
+          {
+            "label": "Development style",
+            "value": "Classic + RAP mix",
+            "tone": "warn"
+          },
+          {
+            "label": "$TMP leftovers",
+            "value": "7",
+            "tone": "danger"
+          }
+        ]
+      },
+      "next": "atc"
+    },
+    "atc": {
+      "id": "atc",
+      "type": "tool",
+      "toolName": "SAPDiagnose",
+      "callId": "atc-zsd-legacy",
+      "args": {
+        "action": "atc",
+        "package": "ZSD_LEGACY",
+        "variant": "ABAP_CLOUD_READINESS"
+      },
+      "summary": "ATC gives the package-wide cloud-readiness signal used by the Clean Core skill.",
+      "resultFormat": "json",
+      "result": "{\"objectsChecked\":28,\"findings\":[{\"priority\":\"P1\",\"count\":3,\"topic\":\"direct SAP table access\"},{\"priority\":\"P2\",\"count\":5,\"topic\":\"unreleased APIs\"},{\"priority\":\"P3\",\"count\":11,\"topic\":\"classic syntax and style\"}]}",
+      "panel": {
+        "title": "ATC package result",
+        "kind": "report",
+        "items": [
+          {
+            "label": "P1",
+            "value": "3 direct SAP table accesses",
+            "tone": "danger"
+          },
+          {
+            "label": "P2",
+            "value": "5 unreleased API usages",
+            "tone": "warn"
+          },
+          {
+            "label": "P3",
+            "value": "11 style/readiness findings",
+            "tone": "neutral"
+          }
+        ]
+      },
+      "next": "api-state"
+    },
+    "api-state": {
+      "id": "api-state",
+      "type": "tool",
+      "toolName": "SAPRead",
+      "callId": "api-state-zsd-legacy",
+      "args": {
+        "type": "API_STATE",
+        "name": "USR02,VBAK,VBAP,BUT000"
+      },
+      "summary": "ARC-1 reads release-state evidence so the backlog has successor direction.",
+      "resultFormat": "table",
+      "result": "USR02: not released. VBAK/VBAP: direct table access not cloud-ready. BUT000: use released business partner APIs or released interface views where applicable.",
+      "panel": {
+        "title": "Release-state evidence",
+        "kind": "table",
+        "items": [
+          {
+            "label": "USR02",
+            "value": "internal; replace with released user API/view",
+            "tone": "danger"
+          },
+          {
+            "label": "VBAK/VBAP",
+            "value": "review against released sales APIs",
+            "tone": "warn"
+          },
+          {
+            "label": "BUT000",
+            "value": "prefer released business partner views",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "where-used"
+    },
+    "where-used": {
+      "id": "where-used",
+      "type": "tool",
+      "toolName": "SAPNavigate",
+      "callId": "refs-risky-objects",
+      "args": {
+        "action": "references",
+        "names": [
+          "ZCL_SD_ORDER_READER",
+          "ZCL_SD_USER_LOOKUP"
+        ],
+        "depth": 2
+      },
+      "summary": "Where-used evidence separates high-risk central utilities from isolated cleanup candidates.",
+      "resultFormat": "graph",
+      "result": "ZCL_SD_ORDER_READER is used by three reports and one service. ZCL_SD_USER_LOOKUP is used by batch job ZSD_SYNC_USERS only.",
+      "panel": {
+        "title": "Usage-driven priority",
+        "kind": "graph",
+        "items": [
+          {
+            "label": "Central utility",
+            "value": "ZCL_SD_ORDER_READER: 4 consumers",
+            "tone": "danger"
+          },
+          {
+            "label": "Isolated job",
+            "value": "ZCL_SD_USER_LOOKUP: 1 consumer",
+            "tone": "warn"
+          },
+          {
+            "label": "Candidate retirement",
+            "value": "2 reports have no references",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "decision"
+    },
+    "decision": {
+      "id": "decision",
+      "type": "decision",
+      "prompt": "Which artifact should Copilot show?",
+      "options": [
+        {
+          "id": "backlog",
+          "label": "Backlog board",
+          "description": "Group findings into execution-ready modernization items.",
+          "recommended": true,
+          "next": "backlog"
+        },
+        {
+          "id": "exec",
+          "label": "Executive summary",
+          "description": "Create a shorter Teams-ready summary.",
+          "next": "exec"
+        }
+      ]
+    },
+    "backlog": {
+      "id": "backlog",
+      "type": "panel",
+      "panel": {
+        "title": "Modernization backlog",
+        "kind": "report",
+        "body": "The backlog is grouped by fixability rather than by raw ATC severity. That makes the output useful for planning instead of a long finding dump.",
+        "items": [
+          {
+            "label": "Priority 1",
+            "value": "Replace direct table readers in central utilities",
+            "tone": "danger"
+          },
+          {
+            "label": "Priority 2",
+            "value": "Refactor unreleased API calls with released successors",
+            "tone": "warn"
+          },
+          {
+            "label": "Priority 3",
+            "value": "Move $TMP objects into owned packages or retire",
+            "tone": "warn"
+          },
+          {
+            "label": "Priority 4",
+            "value": "Investigate two apparently unused reports",
+            "tone": "good"
+          }
+        ]
+      },
+      "next": "done"
+    },
+    "exec": {
+      "id": "exec",
+      "type": "message",
+      "role": "assistant",
+      "text": "Teams summary: ZSD_LEGACY is not clean-core ready yet. Highest risk is central direct table access in order and user lookup utilities. I recommend a two-sprint plan: first replace central readers with released APIs/views, then clean up ownership and likely-unused reports. No code was changed.",
+      "next": "done"
+    },
+    "done": {
+      "id": "done",
+      "type": "message",
+      "role": "assistant",
+      "text": "This replay mirrors the package-level Clean Core skill: package inventory, ATC, API release state, where-used priority, then a human-owned backlog."
+    }
+  }
+}
