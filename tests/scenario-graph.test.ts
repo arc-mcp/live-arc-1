@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { scenarios } from '../lib/scenarios/data';
-import type { ScenarioGroup } from '../lib/scenarios/types';
+import type { ScenarioGroup, ToolNode } from '../lib/scenarios/types';
 import { validateScenarios } from '../lib/scenarios/validate';
 
 describe('scenario graph', () => {
@@ -67,5 +67,23 @@ describe('scenario graph', () => {
       expect(graphNode.panel.graph?.nodes.length).toBeGreaterThanOrEqual(8);
       expect(graphNode.panel.graph?.edges.length).toBeGreaterThanOrEqual(7);
     }
+  });
+
+  it('shows supporting MCP servers in the UI5 modernization replay while keeping ARC-1 primary', () => {
+    const scenario = scenarios.find((candidate) => candidate.id === 'ui5-typescript-modernization');
+
+    expect(scenario).toBeDefined();
+    if (!scenario) {
+      return;
+    }
+
+    const toolNodes = Object.values(scenario.nodes).filter((node): node is ToolNode => node.type === 'tool');
+    const arcToolNodes = toolNodes.filter((node) => (node.server ?? 'arc-1') === 'arc-1');
+    const supportingMcpNodes = toolNodes.filter((node) => node.server && node.server !== 'arc-1');
+
+    expect(arcToolNodes.length).toBeGreaterThanOrEqual(3);
+    expect(supportingMcpNodes.map((node) => node.server)).toEqual(
+      expect.arrayContaining(['sap-docs', 'fiori-mcp', 'ui5-mcp'])
+    );
   });
 });

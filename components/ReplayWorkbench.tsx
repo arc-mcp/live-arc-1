@@ -31,6 +31,7 @@ import { type Ref, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { defaultScenarioId, getScenario, scenarios } from '@/lib/scenarios/data';
 import type {
   DecisionNode,
+  McpServerId,
   ReplayGraph,
   ReplayNode,
   ReplayPanel,
@@ -52,6 +53,13 @@ type VisibleEvent =
     };
 
 type Speed = '1x' | '2x' | 'instant';
+
+const toolServerLabels = {
+  'arc-1': 'ARC-1',
+  'sap-docs': 'SAP Docs',
+  'ui5-mcp': 'UI5 MCP',
+  'fiori-mcp': 'Fiori MCP'
+} satisfies Record<McpServerId, string>;
 
 const scenarioGroupOrder: ScenarioGroup[] = [
   'Understanding',
@@ -321,7 +329,7 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
           <section className="panel-section">
             <div className="panel-heading">
               <Activity size={16} />
-              <span>ARC-1 tool calls</span>
+              <span>ARC-1 + MCP calls</span>
             </div>
             <ToolTrace tools={toolNodes} />
           </section>
@@ -431,10 +439,10 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
         </div>
         <div className="vscode-explorer">
           <strong>{workspace.root}</strong>
-          {workspace.entries.map((entry) => (
+          {workspace.entries.map((entry, index) => (
             <span
               className={`depth-${entry.depth ?? 0}${entry.active ? ' entry-active' : ''}`}
-              key={`${entry.depth ?? 0}-${entry.label}`}
+              key={`${index}-${entry.depth ?? 0}-${entry.label}`}
             >
               {entry.label}
             </span>
@@ -594,6 +602,40 @@ function getVscodeWorkspace(scenario: Scenario): VscodeWorkspace {
     };
   }
 
+  if (scenario.id === 'ui5-typescript-modernization') {
+    return {
+      root: 'legacy-ui5-rap-modernization',
+      commandCenter: 'modernize-ui5-to-typescript replay',
+      variant: 'migration',
+      entries: [
+        { label: 'README.md' },
+        { label: 'skills/' },
+        { label: 'modernize-ui5-app.md', depth: 1, active: true },
+        { label: 'convert-ui5-to-fiori-elements.md', depth: 1 },
+        { label: 'rap-contract/' },
+        { label: 'ZUI_DM_PROJECTS_O4.srvb.json', depth: 1 },
+        { label: 'ZC_DM_PROJECT.ddls.asddls', depth: 1 },
+        { label: 'ZC_DM_PROJECT.bdef.asbdef', depth: 1 },
+        { label: 'legacy-ui5-app/webapp/' },
+        { label: 'manifest.json', depth: 1 },
+        { label: 'Component.js', depth: 1 },
+        { label: 'controller/App.controller.js', depth: 1 },
+        { label: 'controller/Detail.controller.js', depth: 1, active: true },
+        { label: 'view/Detail.view.xml', depth: 1 },
+        { label: 'modern-ui5-ts-app/webapp/' },
+        { label: 'manifest.json', depth: 1 },
+        { label: 'controller/Detail.controller.ts', depth: 1 },
+        { label: 'annotations/annotation.xml', depth: 1 }
+      ],
+      tabs: [
+        { label: 'modernize-ui5-app.md', active: true },
+        { label: 'manifest.json' },
+        { label: 'Detail.controller.ts' },
+        { label: 'ZC_DM_PROJECT.ddls' }
+      ]
+    };
+  }
+
   return {
     root: 'ARC-1 Replay',
     commandCenter: 'arc-1 replay workspace',
@@ -663,15 +705,17 @@ function TranscriptNode({ node, nodeRef }: { node: ReplayNode; nodeRef?: Ref<HTM
   if (node.type === 'tool') {
     const args = formatToolPayload(node.args);
     const result = formatToolResult(node.result);
+    const server = toolServerId(node);
 
     return (
-      <article className="tool-message" ref={nodeRef}>
-        <div className="tool-icon">
+      <article className={`tool-message tool-message-${server}`} ref={nodeRef}>
+        <div className={`tool-icon tool-icon-${server}`}>
           <Wrench size={16} />
         </div>
         <div>
           <div className="tool-message-head">
             <strong>{node.toolName}</strong>
+            <ToolServerBadge tool={node} />
             <span>{node.callId}</span>
           </div>
           <p>{node.summary}</p>
@@ -700,6 +744,15 @@ function TranscriptNode({ node, nodeRef }: { node: ReplayNode; nodeRef?: Ref<HTM
   }
 
   return null;
+}
+
+function toolServerId(tool: ToolNode): McpServerId {
+  return tool.server ?? 'arc-1';
+}
+
+function ToolServerBadge({ tool }: { tool: ToolNode }) {
+  const server = toolServerId(tool);
+  return <span className={`tool-server server-${server}`}>{toolServerLabels[server]}</span>;
 }
 
 function formatToolPayload(value: Record<string, unknown>) {
@@ -755,7 +808,10 @@ function ToolTrace({ tools }: { tools: ToolNode[] }) {
               <strong>{tool.toolName}</strong>
               <small>{tool.callId}</small>
             </span>
-            <small>{tool.resultFormat}</small>
+            <span className="tool-trace-meta">
+              <ToolServerBadge tool={tool} />
+              <small>{tool.resultFormat}</small>
+            </span>
           </summary>
           <div className="tool-trace-body">
             <div className="trace-block">

@@ -1,5 +1,5 @@
 import { scenarios } from './data';
-import type { ArcToolName, ReplayNode, ReplayPanel } from './types';
+import type { ArcToolName, McpServerId, ReplayNode, ReplayPanel } from './types';
 
 const arcToolNames = new Set<ArcToolName>([
   'SAPRead',
@@ -15,6 +15,8 @@ const arcToolNames = new Set<ArcToolName>([
   'SAPDiagnose',
   'SAPManage'
 ]);
+
+const mcpServerIds = new Set<McpServerId>(['arc-1', 'sap-docs', 'ui5-mcp', 'fiori-mcp']);
 
 export function validateScenarios(): string[] {
   const errors: string[] = [];
@@ -52,8 +54,17 @@ function checkNode(scenarioId: string, node: ReplayNode, nodeIds: Set<string>, e
     }
   }
 
-  if (node.type === 'tool' && !arcToolNames.has(node.toolName)) {
-    errors.push(`${scenarioId}/${node.id}: unknown ARC-1 tool ${node.toolName}`);
+  if (node.type === 'tool') {
+    const server = node.server ?? 'arc-1';
+    if (!mcpServerIds.has(server)) {
+      errors.push(`${scenarioId}/${node.id}: unknown MCP server ${server}`);
+    }
+    if (server === 'arc-1' && !arcToolNames.has(node.toolName as ArcToolName)) {
+      errors.push(`${scenarioId}/${node.id}: unknown ARC-1 tool ${node.toolName}`);
+    }
+    if (server !== 'arc-1' && !node.toolName.trim()) {
+      errors.push(`${scenarioId}/${node.id}: supporting MCP call needs a tool name`);
+    }
   }
 
   if (node.type === 'tool' && node.panel) {

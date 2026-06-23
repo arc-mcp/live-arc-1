@@ -25,6 +25,8 @@ export type ArcToolName =
   | 'SAPDiagnose'
   | 'SAPManage';
 
+export type McpServerId = 'arc-1' | 'sap-docs' | 'ui5-mcp' | 'fiori-mcp';
+
 export type PanelKind =
   | 'source'
   | 'diff'
@@ -67,7 +69,8 @@ export interface MessageNode extends BaseNode {
 
 export interface ToolNode extends BaseNode {
   type: 'tool';
-  toolName: ArcToolName;
+  server?: McpServerId;
+  toolName: string;
   callId: string;
   args: Record<string, unknown>;
   result: string;

@@ -11,9 +11,10 @@
     "VS Code",
     "UI5",
     "RAP",
-    "Fiori"
+    "Fiori",
+    "MCP"
   ],
-  "outcome": "A UI migration plan tied to the real RAP service binding, projection entities, and legacy SEGW behavior.",
+  "outcome": "A UI migration plan tied to the real RAP service binding, projection entities, legacy SEGW behavior, and supporting UI5/Fiori MCP guidance.",
   "startNodeId": "start",
   "nodes": {
     "start": {
@@ -30,7 +31,43 @@
         "title": "Legacy UI5 scan",
         "kind": "document",
         "eyebrow": "legacy-ui5-app",
-        "body": "The app is a UI5 1.84 freestyle JavaScript master-detail app. It uses a hardcoded OData V2 model, ProjectSet -> Tasks navigation, Task -> TimeEntries navigation, and a function import ApproveProject."
+        "body": "The app is a UI5 1.84 freestyle JavaScript master-detail app. It uses a hardcoded OData V2 model, ProjectSet -> Tasks navigation, Task -> TimeEntries navigation, and a function import ApproveProject. Supporting MCPs can provide UI5/Fiori guidance, but ARC-1 remains the source of truth for the SAP backend contract."
+      },
+      "next": "docs-grounding"
+    },
+    "docs-grounding": {
+      "id": "docs-grounding",
+      "type": "tool",
+      "server": "sap-docs",
+      "toolName": "search_docs",
+      "callId": "sap-docs-ui5-v4-modernization",
+      "args": {
+        "query": "SAPUI5 OData V4 bound actions FlexibleColumnLayout TypeScript migration"
+      },
+      "summary": "A supporting SAP Docs MCP lookup checks the current UI5/OData V4 patterns before ARC-1 reads the live service.",
+      "resultFormat": "text",
+      "result": "Relevant guidance found: OData V4 operation bindings for bound actions, manifest-based model configuration, FlexibleColumnLayout routing, TypeScript controller typing, and Fiori Elements annotation-driven LROP generation.",
+      "panel": {
+        "title": "MCP coordination model",
+        "kind": "table",
+        "body": "The assistant uses supporting MCP servers for documentation and generator guidance, then uses ARC-1 to verify the exact SAP objects, fields, associations, and migrated action names.",
+        "items": [
+          {
+            "label": "Primary SAP system truth",
+            "value": "ARC-1 SAPRead / SAPContext / SAPWrite",
+            "tone": "good"
+          },
+          {
+            "label": "Supporting guidance",
+            "value": "SAP Docs MCP for current UI5 and OData V4 patterns",
+            "tone": "neutral"
+          },
+          {
+            "label": "Generator support",
+            "value": "Fiori MCP or UI5 MCP after ARC-1 validates the contract",
+            "tone": "neutral"
+          }
+        ]
       },
       "next": "srvb"
     },
@@ -153,15 +190,54 @@
           "label": "Fiori Elements",
           "description": "Use annotations and a generated LROP app when the UX is standard CRUD.",
           "recommended": true,
-          "next": "fe"
+          "next": "fiori-generator"
         },
         {
           "id": "ts",
           "label": "UI5 TypeScript",
           "description": "Use a freestyle TypeScript app when custom interaction stays important.",
-          "next": "ts"
+          "next": "ui5-scaffold"
         }
       ]
+    },
+    "fiori-generator": {
+      "id": "fiori-generator",
+      "type": "tool",
+      "server": "fiori-mcp",
+      "toolName": "get_functionality",
+      "callId": "fiori-lrop-plan",
+      "args": {
+        "functionality": "List Report Object Page",
+        "odataVersion": "4",
+        "serviceBinding": "ZUI_DM_PROJECTS_O4",
+        "rootEntity": "Project"
+      },
+      "summary": "The Fiori MCP contributes generator guidance after ARC-1 confirms the service binding, projection entity, navigation, and bound action.",
+      "resultFormat": "text",
+      "result": "Generate an LROP app on service ZUI_DM_PROJECTS_O4, root entity Project, navigation _Tasks and _TimeEntries. Required backend annotations: HeaderInfo, LineItem, Identification, Facets, SelectionFields, Criticality, and DataFieldForAction for approve_project.",
+      "panel": {
+        "title": "Fiori generator input",
+        "kind": "report",
+        "body": "The generator input is intentionally downstream from ARC-1 reads. The MCP server can suggest the Fiori Elements shape, but ARC-1 supplies the system-specific service, entity, action, and annotation object names.",
+        "items": [
+          {
+            "label": "Service binding",
+            "value": "ZUI_DM_PROJECTS_O4 from SAPRead(SRVB)",
+            "tone": "good"
+          },
+          {
+            "label": "Root entity",
+            "value": "Project from ZC_DM_PROJECT",
+            "tone": "good"
+          },
+          {
+            "label": "Action button",
+            "value": "approve_project as DataFieldForAction",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "fe"
     },
     "fe": {
       "id": "fe",
@@ -189,6 +265,51 @@
         ]
       },
       "next": "done"
+    },
+    "ui5-scaffold": {
+      "id": "ui5-scaffold",
+      "type": "tool",
+      "server": "ui5-mcp",
+      "toolName": "scaffold_ui5_typescript",
+      "callId": "ui5-ts-scaffold-plan",
+      "args": {
+        "template": "sapui5-typescript",
+        "ui5Version": "1.147",
+        "service": "ZUI_DM_PROJECTS_O4",
+        "odataVersion": "4",
+        "features": [
+          "FlexibleColumnLayout",
+          "typed controllers",
+          "manifest OData V4 model",
+          "bound action execution"
+        ]
+      },
+      "summary": "The UI5 MCP provides frontend scaffold guidance while ARC-1 supplies the RAP service contract and migrated action semantics.",
+      "resultFormat": "table",
+      "result": "Scaffold: SAPUI5 1.147 TypeScript. Model: manifest.json dataSource points to /sap/opu/odata4/.../ZUI_DM_PROJECTS_O4/. Bindings: Project -> _Tasks -> _TimeEntries. Controller action: execute approve_project via OData V4 operation binding.",
+      "panel": {
+        "title": "UI5 TypeScript scaffold inputs",
+        "kind": "table",
+        "body": "The supporting MCP can shape the frontend project, but it should not invent SAP contract names. Those names come from ARC-1 reads against the actual RAP service.",
+        "items": [
+          {
+            "label": "Frontend template",
+            "value": "SAPUI5 TypeScript with FlexibleColumnLayout",
+            "tone": "good"
+          },
+          {
+            "label": "Backend contract",
+            "value": "ZUI_DM_PROJECTS_O4 / Project / _Tasks",
+            "tone": "good"
+          },
+          {
+            "label": "Custom action",
+            "value": "approve_project bound action, not V2 function import",
+            "tone": "warn"
+          }
+        ]
+      },
+      "next": "ts"
     },
     "ts": {
       "id": "ts",
