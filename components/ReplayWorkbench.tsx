@@ -48,6 +48,8 @@ type VisibleEvent =
   | {
       kind: 'choice';
       id: string;
+      decisionId: string;
+      optionId: string;
       prompt: string;
       label: string;
     };
@@ -186,7 +188,7 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
     return () => window.clearTimeout(timeout);
   }, [advanceOne, state.currentNodeId, state.isPlaying, state.speed]);
 
-  const start = () => setState((current) => ({ ...current, isPlaying: true, activeDecision: undefined }));
+  const start = () => setState((current) => ({ ...current, isPlaying: Boolean(current.currentNodeId) }));
   const pause = () => setState((current) => ({ ...current, isPlaying: false }));
   const reset = () => setState(initialState(scenario));
   const step = () => advanceOne();
@@ -202,16 +204,31 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
         ...current.events,
         {
           kind: 'choice',
-          id: `${decision.id}-${option.id}`,
+          id: `${decision.id}-${option.id}-${current.events.length}`,
+          decisionId: decision.id,
+          optionId: option.id,
           prompt: decision.prompt,
           label: option.label
         }
       ],
       currentNodeId: option.next,
-      activeDecision: undefined,
+      activeDecision: decision,
       isPlaying: true
     }));
   };
+
+  const exploredDecisionOptions = useMemo(() => {
+    if (!state.activeDecision) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      state.events
+        .filter((event): event is Extract<VisibleEvent, { kind: 'choice' }> => event.kind === 'choice')
+        .filter((event) => event.decisionId === state.activeDecision?.id)
+        .map((event) => event.optionId)
+    );
+  }, [state.activeDecision, state.events]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -321,7 +338,9 @@ export function ReplayWorkbench({ initialScenarioId }: { initialScenarioId: stri
 
             <Transcript scenario={scenario} events={state.events} />
 
-            {state.activeDecision ? <DecisionCard decision={state.activeDecision} onChoose={choose} /> : null}
+            {state.activeDecision ? (
+              <DecisionCard decision={state.activeDecision} exploredOptionIds={exploredDecisionOptions} onChoose={choose} />
+            ) : null}
           </ShellFrame>
         </section>
 
@@ -769,21 +788,32 @@ function formatToolResult(result: string) {
 
 function DecisionCard({
   decision,
+  exploredOptionIds,
   onChoose
 }: {
   decision: DecisionNode;
+  exploredOptionIds: Set<string>;
   onChoose: (decision: DecisionNode, optionId: string) => void;
 }) {
   return (
     <section className="decision-card">
       <p>{decision.prompt}</p>
       <div>
-        {decision.options.map((option) => (
-          <button className={option.recommended ? 'recommended' : ''} key={option.id} onClick={() => onChoose(decision, option.id)} type="button">
-            <strong>{option.label}</strong>
-            <span>{option.description}</span>
-          </button>
-        ))}
+        {decision.options.map((option) => {
+          const explored = exploredOptionIds.has(option.id);
+          return (
+            <button
+              className={[option.recommended ? 'recommended' : '', explored ? 'explored' : ''].filter(Boolean).join(' ')}
+              key={option.id}
+              onClick={() => onChoose(decision, option.id)}
+              type="button"
+            >
+              <strong>{option.label}</strong>
+              <span>{option.description}</span>
+              {explored ? <small>Shown - click again to replay this branch</small> : <small>Show this branch</small>}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

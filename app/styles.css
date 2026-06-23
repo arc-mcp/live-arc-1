@@ -1004,9 +1004,26 @@ button {
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.decision-card button.explored {
+  background: #f7fbff;
+  border-color: #bdd7f8;
+}
+
+.vscode-shell .decision-card button.explored {
+  background: #263142;
+  border-color: #2f6fb8;
+}
+
 .decision-card button span {
   color: var(--muted);
   font-size: 13px;
+}
+
+.decision-card button small {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 760;
+  margin-top: 3px;
 }
 
 .evidence-panel {
