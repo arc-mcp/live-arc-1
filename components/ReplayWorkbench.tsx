@@ -334,6 +334,15 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
   if (scenario.theme === 'vscode') {
     return (
       <div className="client-shell vscode-shell">
+        <div className="vscode-titlebar" aria-hidden="true">
+          <span className="vscode-menu">File</span>
+          <span>Edit</span>
+          <span>View</span>
+          <div className="vscode-command-center">arc-1 replay workspace</div>
+          <span className="vscode-window-dot" />
+          <span className="vscode-window-dot" />
+          <span className="vscode-window-dot" />
+        </div>
         <div className="vscode-activitybar" aria-hidden="true">
           <span className="codicon codicon-files" />
           <span className="codicon codicon-search" />
@@ -347,7 +356,14 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
           <span>transport</span>
           <span>diagnostics</span>
         </div>
-        <div className="client-main">{children}</div>
+        <div className="vscode-workarea">
+          <div className="vscode-tabs" aria-hidden="true">
+            <span className="active">ARC-1 Chat</span>
+            <span>tool-calls.json</span>
+            <span>evidence.md</span>
+          </div>
+          <div className="client-main">{children}</div>
+        </div>
       </div>
     );
   }
@@ -355,6 +371,11 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
   if (scenario.theme === 'claude') {
     return (
       <div className="client-shell claude-shell">
+        <div className="claude-topbar" aria-hidden="true">
+          <strong>Claude</strong>
+          <div className="claude-model-pill">Claude Sonnet</div>
+          <span>ARC-1 MCP connected</span>
+        </div>
         <div className="claude-sidebar" aria-hidden="true">
           <div className="claude-logo">C</div>
           <div className="claude-tabs">
@@ -400,8 +421,41 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
     );
   }
 
+  if (scenario.theme === 'teams') {
+    return (
+      <div className="client-shell microsoft-shell teams-shell">
+        <div className="teams-topbar" aria-hidden="true">
+          <strong>Microsoft Teams</strong>
+          <div>Search or type a command</div>
+          <span>ARC-1 Copilot</span>
+        </div>
+        <div className="ms-rail" aria-hidden="true">
+          <Chat24Regular />
+          <Bot24Regular />
+          <Document24Regular />
+          <People24Regular />
+        </div>
+        <div className="teams-channel" aria-hidden="true">
+          <strong>SAP Delivery</strong>
+          <span className="active">General</span>
+          <span>Clean Core</span>
+          <span>Release review</span>
+        </div>
+        <div className="teams-thread">
+          <div className="teams-thread-header" aria-hidden="true">
+            <strong>SAP Delivery / General</strong>
+            <span>Posts</span>
+            <span>Files</span>
+            <span>ARC-1</span>
+          </div>
+          <div className="client-main">{children}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="client-shell microsoft-shell">
+    <div className="client-shell microsoft-shell copilot-shell">
       <div className="ms-rail" aria-hidden="true">
         <Chat24Regular />
         <Bot24Regular />
@@ -409,7 +463,7 @@ function ShellFrame({ children, scenario }: { children: React.ReactNode; scenari
         <People24Regular />
       </div>
       <div className="teams-channel" aria-hidden="true">
-        <strong>{scenario.theme === 'teams' ? 'SAP Delivery' : 'Copilot'}</strong>
+        <strong>Copilot</strong>
         <span>General</span>
         <span>Clean Core</span>
         <span>Release review</span>

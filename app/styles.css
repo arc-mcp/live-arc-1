@@ -217,7 +217,45 @@ button {
   background: #1e1e1e;
   border-color: #30363d;
   color: #d4d4d4;
-  grid-template-columns: 48px 186px minmax(0, 1fr);
+  grid-template-areas:
+    "titlebar titlebar titlebar"
+    "activitybar explorer workarea";
+  grid-template-columns: 48px 206px minmax(0, 1fr);
+  grid-template-rows: 34px minmax(0, 1fr);
+}
+
+.vscode-titlebar {
+  align-items: center;
+  background: #3c3c3c;
+  border-bottom: 1px solid #2b2b2b;
+  color: #cccccc;
+  display: grid;
+  font-size: 12px;
+  gap: 14px;
+  grid-area: titlebar;
+  grid-template-columns: auto auto auto minmax(180px, 1fr) 12px 12px 12px;
+  padding: 0 12px;
+}
+
+.vscode-command-center {
+  background: #4a4a4a;
+  border: 1px solid #5c5c5c;
+  border-radius: 6px;
+  color: #e6e6e6;
+  justify-self: center;
+  max-width: 360px;
+  min-height: 22px;
+  padding: 3px 18px;
+  text-align: center;
+  width: 100%;
+}
+
+.vscode-window-dot {
+  background: #b8b8b8;
+  border-radius: 999px;
+  height: 7px;
+  justify-self: center;
+  width: 7px;
 }
 
 .vscode-activitybar {
@@ -226,6 +264,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  grid-area: activitybar;
   padding-top: 20px;
 }
 
@@ -241,12 +280,44 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  grid-area: explorer;
   padding: 16px 12px;
 }
 
 .vscode-explorer span {
   color: #aeb6c2;
   font-size: 13px;
+}
+
+.vscode-workarea {
+  display: flex;
+  flex-direction: column;
+  grid-area: workarea;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.vscode-tabs {
+  background: #252526;
+  border-bottom: 1px solid #333;
+  display: flex;
+  min-height: 36px;
+  overflow: hidden;
+}
+
+.vscode-tabs span {
+  align-items: center;
+  border-right: 1px solid #333;
+  color: #aeb6c2;
+  display: inline-flex;
+  font-size: 12px;
+  min-width: 120px;
+  padding: 0 12px;
+}
+
+.vscode-tabs .active {
+  background: #1e1e1e;
+  color: #ffffff;
 }
 
 .microsoft-shell {
@@ -257,7 +328,37 @@ button {
 .claude-shell {
   background: #f7f1e8;
   border-color: #ded4c8;
-  grid-template-columns: 190px minmax(0, 1fr) 210px;
+  grid-template-areas:
+    "topbar topbar"
+    "sidebar main";
+  grid-template-columns: 176px minmax(0, 1fr);
+  grid-template-rows: 44px minmax(0, 1fr);
+}
+
+.claude-topbar {
+  align-items: center;
+  background: #fbf6ee;
+  border-bottom: 1px solid #ded4c8;
+  color: #453a31;
+  display: flex;
+  gap: 12px;
+  grid-area: topbar;
+  padding: 0 16px;
+}
+
+.claude-topbar > span {
+  color: #75695f;
+  font-size: 13px;
+  margin-left: auto;
+}
+
+.claude-model-pill {
+  background: #efe7db;
+  border: 1px solid #ded4c8;
+  border-radius: 999px;
+  color: #453a31;
+  font-size: 12px;
+  padding: 5px 9px;
 }
 
 .claude-sidebar,
@@ -273,10 +374,18 @@ button {
 
 .claude-sidebar {
   border-right: 1px solid #ded4c8;
+  grid-area: sidebar;
 }
 
 .claude-context {
   border-left: 1px solid #ded4c8;
+  grid-area: context;
+  display: none;
+}
+
+.claude-shell > .client-main {
+  background: #faf3ea;
+  grid-area: main;
 }
 
 .claude-logo {
@@ -337,6 +446,91 @@ button {
   flex-direction: column;
   gap: 22px;
   padding-top: 20px;
+}
+
+.teams-shell {
+  background: #f5f5fb;
+  grid-template-areas:
+    "teamtop teamtop teamtop"
+    "rail channel thread";
+  grid-template-columns: 58px 210px minmax(0, 1fr);
+  grid-template-rows: 46px minmax(0, 1fr);
+}
+
+.teams-topbar {
+  align-items: center;
+  background: #464775;
+  color: #fff;
+  display: grid;
+  gap: 14px;
+  grid-area: teamtop;
+  grid-template-columns: 180px minmax(160px, 1fr) auto;
+  padding: 0 16px;
+}
+
+.teams-topbar div {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  min-height: 30px;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+.teams-topbar span {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+}
+
+.teams-shell .ms-rail {
+  background: #ebebf7;
+  grid-area: rail;
+}
+
+.teams-shell .teams-channel {
+  grid-area: channel;
+}
+
+.teams-channel .active {
+  background: #f0f0fb;
+  border-radius: 6px;
+  color: #2f2f68;
+  font-weight: 760;
+  margin-left: -6px;
+  padding: 7px 6px;
+}
+
+.teams-thread {
+  background: #f8f8fc;
+  display: flex;
+  flex-direction: column;
+  grid-area: thread;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.teams-thread-header {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 18px;
+  min-height: 48px;
+  padding: 0 18px;
+}
+
+.teams-thread-header strong {
+  margin-right: auto;
+}
+
+.teams-thread-header span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.teams-thread > .client-main {
+  flex: 1;
 }
 
 .ms-rail svg {
@@ -953,10 +1147,37 @@ button {
   }
 
   .topbar {
-    position: static;
+    min-height: 56px;
+    padding: 0 12px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
   }
 
-  .scenario-sidebar,
+  .brand {
+    gap: 9px;
+    min-width: 0;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .brand-mark {
+    height: 34px;
+    width: 44px;
+  }
+
+  .scenario-sidebar {
+    border-bottom: 1px solid var(--border);
+    border-right: 0;
+    gap: 10px;
+    padding: 10px 12px 12px;
+    position: sticky;
+    top: 56px;
+    z-index: 30;
+  }
+
   .replay-stage,
   .evidence-panel {
     border: 0;
@@ -964,7 +1185,38 @@ button {
   }
 
   .scenario-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    gap: 10px;
+    margin: 0 -12px;
+    overflow-x: auto;
+    padding: 0 12px 2px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .scenario-card {
+    align-content: start;
+    gap: 7px;
+    max-width: 248px;
+    min-height: 118px;
+    min-width: 248px;
+    padding: 11px;
+    scroll-snap-align: start;
+  }
+
+  .scenario-card.active {
+    order: -1;
+  }
+
+  .scenario-card p {
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tag-row span {
+    padding: 3px 6px;
   }
 
   .client-shell,
@@ -972,7 +1224,7 @@ button {
   .microsoft-shell,
   .claude-shell {
     display: block;
-    min-height: 720px;
+    min-height: 620px;
   }
 
   .vscode-activitybar,
@@ -981,8 +1233,62 @@ button {
   .teams-channel,
   .mail-list,
   .claude-sidebar,
-  .claude-context {
+  .claude-context,
+  .vscode-window-dot {
     display: none;
+  }
+
+  .vscode-titlebar {
+    display: flex;
+    gap: 8px;
+    min-height: 34px;
+  }
+
+  .vscode-titlebar > span:not(.vscode-menu),
+  .teams-topbar span,
+  .claude-topbar > span {
+    display: none;
+  }
+
+  .vscode-command-center {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .vscode-tabs {
+    min-height: 32px;
+    overflow-x: auto;
+  }
+
+  .vscode-tabs span {
+    min-width: 112px;
+  }
+
+  .claude-topbar {
+    min-height: 42px;
+  }
+
+  .teams-topbar {
+    display: flex;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .teams-topbar div {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .teams-thread-header {
+    gap: 12px;
+    min-height: 42px;
+    overflow-x: auto;
+    padding: 0 12px;
+    white-space: nowrap;
   }
 
   .stage-header,
@@ -990,9 +1296,27 @@ button {
     padding: 14px;
   }
 
+  .stage-header h1 {
+    font-size: 22px;
+  }
+
+  .empty-transcript {
+    min-height: 300px;
+    padding: 24px;
+  }
+
+  .message,
+  .tool-message {
+    max-width: 100%;
+  }
+
   .decision-card > div,
   .evidence-panel {
     grid-template-columns: 1fr;
+  }
+
+  .graph-view {
+    min-height: 260px;
   }
 }
 
@@ -1002,7 +1326,21 @@ button {
   }
 
   .scenario-list {
-    grid-template-columns: 1fr;
+    margin: 0 -10px;
+    padding-inline: 10px;
+  }
+
+  .scenario-card {
+    min-width: 224px;
+    max-width: 224px;
+  }
+
+  .scenario-card strong {
+    font-size: 15px;
+  }
+
+  .scenario-card p {
+    font-size: 12px;
   }
 
   .stage-header {
@@ -1016,5 +1354,36 @@ button {
 
   .segmented {
     margin-left: 0;
+  }
+
+  .control-row {
+    align-items: stretch;
+  }
+
+  .primary-button,
+  .icon-button {
+    flex: 1 1 auto;
+  }
+
+  .segmented {
+    width: 100%;
+  }
+
+  .segmented button {
+    flex: 1;
+  }
+
+  .decision-card > div {
+    grid-template-columns: 1fr;
+  }
+
+  .graph-node {
+    min-width: 82px;
+    max-width: 104px;
+    padding: 7px;
+  }
+
+  .graph-node strong {
+    font-size: 11px;
   }
 }
